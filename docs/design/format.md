@@ -5,7 +5,7 @@
 
 > 域：内核 / 存储引擎 / 格式。对应路线图 [0.x 路线增量](../roadmap/0.x.md)。
 >
-> **事实依据**：[`docs/design/format`](format)——字段、位偏移、类型、取值以它为准，本文不另立、不改。
+> **事实依据**：[`docs/design/format.txt`](format.txt)——字段、位偏移、类型、取值以它为准，本文不另立、不改。
 > 规范见[文档规范](../README.md)。
 
 ## <a id="r020"></a>020 格式设计：hub / park / slot / block

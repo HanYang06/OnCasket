@@ -1,0 +1,170 @@
+# ============================================================================
+# pre-commit —— 提交前把关（门禁 G01–G11，口径见 docs/design/gate.txt / gate.md）
+#
+# 设计取舍（为什么是现在这个样子）：
+#
+# 1. **工具全部走 `uv run`（repo: local + language: system）**
+#    工具版本已经在 pyproject.toml 的 dev 组里锁定。如果再用 pre-commit 的独立
+#    hook 仓库，会出现「hook 用的 ruff 版本 ≠ uv.lock 里的 ruff 版本」这种最难查的
+#    不一致。走 `uv run` 后，版本只有一个来源：uv.lock。
+#
+# 2. **actionlint 与 gitleaks 不放这里**
+#    两者的官方 pre-commit 实现是 language: golang，本机没有 Go 工具链，
+#    写进来会让第一次 pre-commit install 就失败。改在 CI 里用官方 Action 跑。
+#
+# 3. **ruff format 是阻塞项**
+#    本仓在建门禁时就把全部文件重排过一遍，没有「在途大 diff」的历史包袱，
+#    既然已经统一，就该挡住后续的格式漂移。
+#
+# 4. **没有 no-commit-to-branch**
+#    分支保护在服务端（ruleset 要求改动走 PR）。本地再加一道只会拦住
+#    「按规范切分支干活」的正常流程。
+#
+# 5. **提交信息走 Conventional Commits**（commit-msg 阶段，允许中文 subject）。
+#
+# 6. **结构文件的版本标记在这里拦住**（docs/README.md §5）：漏盖即门禁红。
+#    这是本仓自有的一条，不来自任何通用 hook。
+# ============================================================================
+
+minimum_pre_commit_version: "4.0.0"
+default_install_hook_types: [pre-commit, commit-msg, pre-push]
+default_stages: [pre-commit]
+fail_fast: false
+
+repos:
+  # --------------------------------------------------------------------------
+  # 通用防线：由 pre-commit 官方维护，纯 Python，无额外工具链依赖
+  # --------------------------------------------------------------------------
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: 3e8a8703264a2f4a69428a0aa4dcb512790b2c8c  # v6.0.0
+    hooks:
+      - id: check-added-large-files
+        name: check-added-large-files（禁止提交大文件）
+        args: [--maxkb=1024]
+      - id: check-case-conflict
+        name: check-case-conflict（大小写不敏感文件系统上的重名冲突）
+      - id: check-illegal-windows-names
+        name: check-illegal-windows-names（Windows 非法文件名）
+      - id: check-merge-conflict
+        name: check-merge-conflict（合并冲突残留）
+      - id: check-symlinks
+        name: check-symlinks（指向不存在目标的符号链接）
+      - id: destroyed-symlinks
+        name: destroyed-symlinks（被当成普通文件提交的符号链接）
+      - id: check-toml
+        name: check-toml
+      - id: check-yaml
+        name: check-yaml
+        args: [--allow-multiple-documents]
+      - id: check-json
+        name: check-json
+      - id: detect-private-key
+        name: detect-private-key（私钥绝不入库）
+      - id: end-of-file-fixer
+        name: end-of-file-fixer（末尾单换行）
+      - id: mixed-line-ending
+        name: mixed-line-ending（统一 LF —— 与 .gitattributes 一致）
+        args: [--fix=lf]
+      - id: trailing-whitespace
+        name: trailing-whitespace（Markdown 行尾双空格保留）
+        args: [--markdown-linebreak-ext=md]
+
+  # --------------------------------------------------------------------------
+  # 提交信息规范：Conventional Commits，允许中文 subject
+  # --------------------------------------------------------------------------
+  - repo: https://github.com/compilerla/conventional-pre-commit
+    rev: 91ab4bf57e58b32adf1a122681f6ebe164d081c8  # v4.4.0
+    hooks:
+      - id: conventional-pre-commit
+        name: conventional-pre-commit（约定式提交）
+        stages: [commit-msg]
+        args:
+          - --strict
+          - --verbose
+          - feat
+          - fix
+          - docs
+          - refactor
+          - perf
+          - test
+          - build
+          - ci
+          - chore
+          - revert
+          - deps
+          - style
+
+  # --------------------------------------------------------------------------
+  # 项目自有检查：一律 `uv run`，版本由 uv.lock 单一事实来源决定
+  # --------------------------------------------------------------------------
+  - repo: local
+    hooks:
+      - id: ruff-check
+        name: ruff check（lint + 自动修复）
+        entry: uv run ruff check --force-exclude --fix
+        language: system
+        types_or: [python, pyi]
+        require_serial: true
+
+      - id: ruff-format
+        name: ruff format（统一排版）
+        entry: uv run ruff format --force-exclude
+        language: system
+        types_or: [python, pyi]
+        require_serial: true
+
+      - id: mypy
+        name: mypy --strict（配置来自 pyproject.toml 的 [tool.mypy]）
+        entry: uv run mypy
+        language: system
+        types_or: [python, pyi]
+        pass_filenames: false
+        require_serial: true
+
+      - id: codespell
+        name: codespell（拼写检查）
+        entry: uv run codespell
+        language: system
+        types: [text]
+
+      - id: bandit
+        name: bandit（src/ 安全静态扫描）
+        entry: uv run bandit -c pyproject.toml -r src -q
+        language: system
+        files: ^src/.*\.py$
+        pass_filenames: false
+
+      - id: zizmor
+        name: zizmor（GitHub Actions 安全审计）
+        entry: uv run zizmor .github/workflows
+        language: system
+        files: ^\.github/workflows/.*\.ya?ml$
+        pass_filenames: false
+
+      - id: stamp-version
+        name: 版本标记（docs/design 结构文件的内容指纹）
+        entry: uv run python scripts/stamp_version.py -c
+        language: system
+        files: ^docs/design/.+\.txt$
+
+      - id: third-party-notices
+        name: third-party-notices（THIRD_PARTY_NOTICES.md 与 uv.lock 是否一致）
+        entry: uv run python scripts/gen_third_party_notices.py --check
+        language: system
+        files: ^(pyproject\.toml|uv\.lock|THIRD_PARTY_NOTICES\.md)$
+        pass_filenames: false
+
+      - id: pytest
+        name: pytest（推送前跑一遍单测）
+        entry: uv run pytest -q
+        language: system
+        types: [python]
+        pass_filenames: false
+        stages: [pre-push]
+
+      - id: pip-audit
+        name: pip-audit（依赖漏洞审计，手动阶段：需要联网）
+        entry: uv run pip-audit
+        language: system
+        pass_filenames: false
+        stages: [manual]

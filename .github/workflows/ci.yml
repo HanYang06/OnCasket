@@ -1,0 +1,222 @@
+# ============================================================================
+# CI —— 提交/PR 的主质量门禁（门禁 G11–G17，口径见 docs/design/gate.txt）
+#
+# 约定：
+#   1) 所有 action 都固定到 40 位 commit SHA（行尾注释写对应版本）。
+#      可变 tag（@v4 之类）可被上游改写，等于把执行权交给上游仓库；
+#      固定 SHA 后，升级只能由本仓库显式改这一行来完成。
+#   2) 权限最小化：顶层只给 contents: read。
+#   3) 每个 job 都有 timeout-minutes：防止 runner 上偶发卡死把并发额度占满。
+#   4) 工具版本与本地一致：uv 固定 0.12.22，Python 固定 3.14（见 .python-version）。
+# ============================================================================
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+# 同一分支/PR 上重复推送时取消旧运行，避免排队浪费额度。
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  # --------------------------------------------------------------------------
+  # 静态检查：ruff / 拼写 / 版本标记 / 工作流语法
+  # --------------------------------------------------------------------------
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      # persist-credentials: false —— 不把 GITHUB_TOKEN 写进本地 git 配置，
+      # 后续步骤（含第三方 action）即使被投毒也拿不到可推送的凭据。
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # setup-uv 必须排在 setup-python 之前：它负责安装 uv 并把 uv 加进 PATH。
+      # version 与 pyproject.toml 的 [tool.uv].required-version 对齐。
+      - name: Install uv
+        uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+        with:
+          version: "0.12.22"
+          enable-cache: true
+
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.14"
+
+      # --frozen：以 uv.lock 为准，锁定失败就直接失败，禁止 CI 静默改锁文件。
+      - name: Sync dependencies
+        run: uv sync --all-groups --frozen
+
+      - name: Ruff check
+        run: uv run ruff check .
+
+      - name: Ruff format check
+        run: uv run ruff format --check .
+
+      - name: Codespell
+        run: uv run codespell
+
+      # 配置由仓库根目录的 .markdownlint-cli2.yaml 提供（按约定文件名自动发现）。
+      - name: Markdownlint
+        uses: DavidAnson/markdownlint-cli2-action@21c1be1b93ad9ed58fa840aacc3f279cde2a72ff # v24.2.0
+        with:
+          globs: "**/*.md"
+
+      # 第三方许可清单必须与「运行时依赖闭包」一致。脚本自带 --check：
+      # 清单与重新生成的结果不一致、或清单文件缺失，都会以非 0 退出。
+      # 没有这一步，THIRD_PARTY_NOTICES.md 会悄悄过期而无人发现。
+      - name: Third-party notices check
+        run: uv run python scripts/gen_third_party_notices.py --check
+
+      # 结构文件的内容指纹：漏盖即红。pre-commit 在本地拦一道，CI 再拦一道。
+      - name: Structure file version stamps
+        run: uv run python scripts/stamp_version.py -c docs/design/*.txt
+
+      # actionlint 校验 .github/workflows 自身的语法/表达式错误。
+      # 本机没有 Go 工具链，所以它只在这里跑。
+      - name: Actionlint
+        uses: raven-actions/actionlint@3d39aea434753780c3b3d4a1a31c854b4dbf49d7 # v2.2.0
+        with:
+          github-token: ${{ github.token }}
+
+  # --------------------------------------------------------------------------
+  # 类型检查：mypy strict（pyproject 里已配 strict = true，files = src + tests）
+  # --------------------------------------------------------------------------
+  typecheck:
+    name: Typecheck
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+        with:
+          version: "0.12.22"
+          enable-cache: true
+
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.14"
+
+      - name: Sync dependencies
+        run: uv sync --all-groups --frozen
+
+      - name: Mypy
+        run: uv run mypy
+
+  # --------------------------------------------------------------------------
+  # 测试：三平台 × Python 3.14，上报覆盖率
+  # --------------------------------------------------------------------------
+  test:
+    name: Test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      # fail-fast: false —— 一个平台失败后仍要看其余平台的结论，
+      # 否则跨平台差异会被"第一个失败"掩盖掉。
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        python-version: ["3.14"]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+        with:
+          version: "0.12.22"
+          enable-cache: true
+
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Sync dependencies
+        run: uv sync --all-groups --frozen
+
+      # --cov 会按 pyproject.toml 的 [tool.coverage.report].fail_under 强制门槛。
+      - name: Pytest with coverage
+        run: uv run pytest --cov --cov-report=term-missing --cov-report=xml
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          # artifact 名带上 os，三平台各自留一份互不覆盖。
+          name: coverage-${{ matrix.os }}
+          path: coverage.xml
+          # 覆盖率文件本该必然存在；缺失说明测试步骤异常，应当显式报错而不是静默 warn。
+          if-no-files-found: error
+          retention-days: 7
+
+  # --------------------------------------------------------------------------
+  # 安全：bandit / 依赖漏洞 / 工作流审计 / 密钥扫描
+  # --------------------------------------------------------------------------
+  security:
+    name: Security
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    # 作业级 permissions 会**整体覆盖**工作流那一层（没列的全变 none），所以要显式写全：
+    # contents 给 checkout、gitleaks 扫历史；pull-requests 给 gitleaks-action v3 ——
+    # 它在 PR 上要先通过 API 读这次 PR 的提交清单，缺了就报
+    # "GITHUB_TOKEN is now required to scan pull requests"。
+    permissions:
+      contents: read
+      pull-requests: read
+    steps:
+      # gitleaks 需要扫全量提交历史，fetch-depth: 0 关掉浅克隆。
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+        with:
+          version: "0.12.22"
+          enable-cache: true
+
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.14"
+
+      - name: Sync dependencies
+        run: uv sync --all-groups --frozen
+
+      - name: Bandit
+        run: uv run bandit -c pyproject.toml -r src
+
+      # 对照 PyPI/GHSA 检查已解析依赖的已知漏洞；CI 环境有网，故不走离线模式。
+      - name: pip-audit
+        run: uv run pip-audit
+
+      # 审计自身工作流（未固定 SHA、危险触发器、权限过大等）。
+      - name: zizmor
+        run: uv run zizmor .github/workflows
+
+      # 密钥扫描走官方 gitleaks action。v3 起 GITHUB_TOKEN 是必需 env。
+      - name: Gitleaks
+        uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e # v3.0.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

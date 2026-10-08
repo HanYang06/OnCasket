@@ -19,7 +19,7 @@
 
 一个设计域 = 同名、同目录的两份：
 
-- **事实依据**：不带扩展名的结构文件（如 `format`）。行式 DSL 写死字段、位偏移、取值，机器可读。
+- **事实依据**：结构文件 `<域名>.txt`（如 `format.txt`）。行式 DSL 写死字段、位偏移、取值，机器可读。
   实现照它，不照说明篇。
 - **说明篇**：`<同名>.md`（如 `format.md`）。按节讲清这份结构怎么用、顺序是什么。
   **只解释事实依据，不另立字段、不改取值**；两者冲突，以事实依据为准。
@@ -50,8 +50,8 @@ endian: little
 `version` 是**内容指纹**，不是数据版本（本引擎不做数据版本管理）。改完必须重盖，漏盖即门禁红：
 
 ```bash
-python scripts/stamp_version.py docs/design/format
-python scripts/stamp_version.py docs/design/format -c   # 门禁：不符退出 1
+python scripts/stamp_version.py docs/design/format.txt
+python scripts/stamp_version.py docs/design/format.txt -c   # 门禁：不符退出 1
 ```
 
 ## 6. 关联

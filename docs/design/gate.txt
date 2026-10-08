@@ -1,0 +1,121 @@
+encoding: utf-8 version: 829035179a940b1accb55f36ef7ae3395f0dde46de15154ad19cc9c5e607051f
+endian: little
+# 门禁清单：唯一事实源。一条 gate 一段，字段顺序固定，缺项留空不删
+# 层：提交（pre-commit）| 提交信息（commit-msg）| 推送（pre-push）| 手动（manual）| CI（远端）
+#     本地四层由 .pre-commit-config.yaml 落地，CI 层由 .github/workflows/ 落地
+# block：必需（非零退出即拒）| 报告（只记不拒）
+# 落点：实现文件，多个用逗号分隔；实现照本清单，不照说明篇
+
+gate G01
+    name            文件卫生：大文件 / 大小写冲突 / Windows 非法名 / 合并冲突 / 符号链接 / TOML、YAML、JSON 语法 / 私钥 / 末尾换行 / 行尾 / 行尾空白
+    layer           提交
+    block           必需
+    impl            .pre-commit-config.yaml
+
+gate G02
+    name            ruff check：lint、import 排序、SPDX 许可头（CPY）
+    layer           提交
+    block           必需
+    impl            .pre-commit-config.yaml, pyproject.toml
+
+gate G03
+    name            ruff format：代码格式
+    layer           提交
+    block           必需
+    impl            .pre-commit-config.yaml, pyproject.toml
+
+gate G04
+    name            结构文件版本标记：docs/design/*.txt 的内容指纹
+    layer           提交
+    block           必需
+    impl            .pre-commit-config.yaml, scripts/stamp_version.py
+
+gate G05
+    name            mypy：strict 类型检查
+    layer           提交
+    block           必需
+    impl            .pre-commit-config.yaml, pyproject.toml
+
+gate G06
+    name            codespell：拼写
+    layer           提交
+    block           必需
+    impl            .pre-commit-config.yaml, pyproject.toml
+
+gate G07
+    name            bandit：src/ 安全静态扫描
+    layer           提交
+    block           必需
+    impl            .pre-commit-config.yaml, pyproject.toml
+
+gate G08
+    name            zizmor：GitHub Actions 安全审计
+    layer           提交
+    block           必需
+    impl            .pre-commit-config.yaml
+
+gate G09
+    name            第三方许可清单：THIRD_PARTY_NOTICES.md 与运行时依赖闭包一致
+    layer           提交
+    block           必需
+    impl            .pre-commit-config.yaml, scripts/gen_third_party_notices.py
+
+gate G10
+    name            pytest：单测
+    layer           推送
+    block           必需
+    impl            .pre-commit-config.yaml, pyproject.toml, tests/
+
+gate G11
+    name            pip-audit：依赖漏洞
+    layer           手动
+    block           必需
+    impl            .pre-commit-config.yaml
+
+gate G12
+    name            conventional-pre-commit：提交信息（Conventional Commits）
+    layer           提交信息
+    block           必需
+    impl            .pre-commit-config.yaml
+
+gate G13
+    name            lint 作业：ruff check / ruff format --check / codespell / 第三方许可清单 / 版本标记 / markdownlint / actionlint
+    layer           CI
+    block           必需
+    impl            .github/workflows/ci.yml
+
+gate G14
+    name            typecheck 作业：mypy
+    layer           CI
+    block           必需
+    impl            .github/workflows/ci.yml
+
+gate G15
+    name            test 作业：pytest × ubuntu / windows / macos + 覆盖率门槛 + 覆盖率产物
+    layer           CI
+    block           必需
+    impl            .github/workflows/ci.yml, pyproject.toml
+
+gate G16
+    name            security 作业：bandit / pip-audit / zizmor / gitleaks
+    layer           CI
+    block           必需
+    impl            .github/workflows/ci.yml
+
+gate G17
+    name            CodeQL：Python 代码扫描
+    layer           CI
+    block           必需
+    impl            .github/workflows/codeql.yml
+
+gate G18
+    name            Dependency Review：PR 上拦截中危及以上的新增依赖
+    layer           CI
+    block           必需
+    impl            .github/workflows/dependency-review.yml
+
+gate G19
+    name            Scorecard：供应链健康度评分
+    layer           CI
+    block           报告
+    impl            .github/workflows/scorecard.yml
