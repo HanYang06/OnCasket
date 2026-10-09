@@ -6,7 +6,14 @@
 `ref` / `attr` / `body`；选址、落盘、提交全归引擎。查询侧靠**索引块**（`AttrIndex` / `BodyIndex`），
 它们的产物只有 `block_id`——拿到 id，地址与内容就都走正常那条路。
 
-这里只是**形态草案**，不是已定口径：见[公开 API 设计](../docs/design/api.md)的待定 1–3。
+这里只是**形态草案**，不是已定口径：见[公开 API 设计](../docs/design/api.md)的待定 1–2。
+
+索引块的条目结构（属性 / 块体各一份）：
+
+```json
+{"attr": [{"block_id": "", "value": "", "value_type": ""}]}
+{"body": [{"block_id": "", "value": "", "value_type": ""}]}
+```
 
 本文件先用 ruff 管着（许可头、注解、docstring 一样不少），但它现在**跑不起来**也不是测试对象
 ——等 API 落地再把它接进可跑性验证。
