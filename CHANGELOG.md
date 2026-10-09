@@ -2,13 +2,13 @@
 
 本项目的重要变更记录在此。格式遵循 [Keep a Changelog 1.1.0](https://keepachangelog.com/zh-CN/1.1.0/)，
 版本号遵循[语义化版本 2.0.0](https://semver.org/lang/zh-CN/)。
-尚未发布的能力与进度见[路线图](docs/roadmap/0.x.md)。
+尚未发布的能力与进度见[路线图](docs/roadmap/1.x.md)。
 
 ## [Unreleased]
 
 ### Added
 
-- **工程脚手架：门禁与许可**（门禁部分对应路线图 026 门禁选型；许可与版权部分尚无路线条目）：
+- **工程脚手架：门禁与许可**（门禁部分对应路线图 027 门禁选型；许可与版权部分尚无路线条目）：
   - 本地三层钩子（`pre-commit` / `commit-msg` / `pre-push`），工具一律走 `uv run`，
     清单见 [`docs/design/gate.txt`](docs/design/gate.txt)；
   - CI 四组作业（lint / typecheck / test × 三平台 / security），所有 action 固定到 commit SHA；
