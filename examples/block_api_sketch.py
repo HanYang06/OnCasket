@@ -6,8 +6,7 @@
 `ref` / `attr` / `body`；选址、落盘、提交全归引擎。查询侧靠**索引块**（`AttrIndex` / `BodyIndex`），
 它们的产物只有 `block_id`——拿到 id，地址与内容就都走正常那条路。
 
-这里的名字与链式调用是**待定形态的草案**，不是已定口径：见[公开 API 设计](../docs/design/api.md)
-的待定 1–5。
+这里只是**形态草案**，不是已定口径：见[公开 API 设计](../docs/design/api.md)的待定 1–3。
 
 本文件先用 ruff 管着（许可头、注解、docstring 一样不少），但它现在**跑不起来**也不是测试对象
 ——等 API 落地再把它接进可跑性验证。
@@ -16,6 +15,7 @@
 from __future__ import annotations
 
 from oncasket.api import Attr, Block, Body, Ref
+from oncasket.api.hub import Hub, Pack
 from oncasket.api.index import AttrIndex, BodyIndex
 
 
@@ -41,6 +41,17 @@ class DemoData:
 
         self.attr.lock.all()
         self.attr.lock.item("title")
+
+        # 下面这段是**拆解版**：流程自己摊开调，引擎不担保；默认那条是 `Hub("hub").write(self.b)`
+        self.h = Hub("hub")
+        self.p = Pack(self.b)
+        if self.p.check() is True:
+            if self.p.allocate(self.h) is True:
+                self.p.write(self.h)
+            else:
+                self.p.re_allocate(self.h)
+                self.p.write(self.h)
+            self.p.sync(self.h.index.db)
 
     def init_attr(self) -> Attr:
         """声明属性区：加一条 `title`，再改它的值。
