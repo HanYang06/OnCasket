@@ -17,7 +17,7 @@ from __future__ import annotations
 from oncasket.api import Attr, Block, Body, Ref
 from oncasket.api.hub import Hub
 from oncasket.api.index import AttrIndex, BodyIndex
-from oncasket.api.park import Pack
+from oncasket.api.park import Packer
 
 
 class DemoData:
@@ -45,7 +45,7 @@ class DemoData:
 
         # 下面这段是**拆解版**：流程自己摊开调，引擎不担保；默认那条是 `Hub("hub").write(self.b)`
         self.h = Hub("hub")
-        self.p = Pack(self.b)
+        self.p = Packer(self.b)
         if self.p.check() is True:
             if self.p.allocate(self.h) is True:
                 self.p.write(self.h)

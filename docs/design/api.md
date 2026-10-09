@@ -28,7 +28,7 @@
   | `oncasket.api` | 把下面几块里**默认开放**的名字重导出 | 是 |
   | `oncasket.api.block` | 声明面：`Block` / `Ref` / `Attr` / `Body` | 是 |
   | `oncasket.api.hub` | 库层：`Hub` | 是 |
-  | `oncasket.api.park` | 载体层：`Park` / `Pack` | 否 |
+  | `oncasket.api.park` | 载体层：`Park` / `Packer` | 否 |
   | `oncasket.api.slot` | 槽层：`Slot` | 否 |
   | `oncasket.api.index` | 查询面：`AttrIndex` / `BodyIndex` | 是 |
 
@@ -82,7 +82,7 @@
 | 层 | 对象 | 职责 | 味道 |
 |---|---|---|---|
 | hub（库） | `Hub` | 宏观的**增删改查** | 包得最深；一键解决 |
-| park（载体） | `Park` / `Pack` | 真正的**读写策略**：选载体、分配、链装配、校验、删除顺序、对账 | 权限更高，影响面更广 |
+| park（载体） | `Park` / `Packer` | 真正的**读写策略**：选载体、分配、链装配、校验、删除顺序、对账 | 权限更高，影响面更广 |
 | slot | `Slot` | **纯读写协议**：一个定长格怎么读、怎么写、怎么清 | 最底层，最原则性 |
 
 - **下层给不了你上层的东西**：`Slot` 不认识块，`Park` 不认识提交点——它们只有原则性的能力。
@@ -104,10 +104,12 @@
 | `Hub(path)` | 库层句柄：一个 hub（索引库、载体、锁、清单都在它手里） | [hub 布局 §005](hub.md#r005) |
 | `Park(name)` | **载体**：一个 `<唯一名>.oncat` 定长文件 | [格式 §6](format.md#r021) |
 | `Slot(index)` | 载体里的一个定长格（位置即身份，永不摘除） | [格式 §2](format.md#r021) |
-| `Pack(block)` | 把块打成物理槽序的那一层：`check` / `allocate` / `write` / `sync` | [格式 §7](format.md#r021) |
+| `Packer(block)` | 把块打成物理槽序的那一层：`check` / `allocate` / `write` / `sync` | [格式 §7](format.md#r021) |
 
 - **`park` 取的是「载体」的意思**：承载 block 的那个定长文件。它不是"停车场"，
   改名不改义；文件怎么摊在容器里见 [hub 布局 §005](hub.md#r005)。
+- **`Park` 与 `Packer` 别混**：`Park` 是载体（那个文件），`Packer` 是「把块打成槽序」的执行者。
+  原来叫 `Pack`，与 `Park` 只差一个字母，改掉了——名词与执行者分开。
 
 ### 6. 声明面（block 层）
 
@@ -142,15 +144,20 @@ block.attr.lock.item("title")  # 冻结一条
 - **句柄就是读写通道**：`body` 句柄写块体，属性句柄读写属性；没有限制说属性不能当块体用
   （索引这类特化场景天然是 KV，拿它当载体正好）。
 
-### 7. 类型与类型登记册
+### 7. 类型与类型块
 
 - `body.type` 是**类型声明**：data 槽里的字节就是 Python 原生结构落下来的那一份，
   **不知道类型就解不回来**——声明它，读端才不必盲猜这是 list、dict 还是 string。
-- 它不给自己在块的字节里占一格（盘上 body 只有 `block_body_size` 位字节），而是**登记**在
-  库级清单里：记着每个块、每个属性、每个 block 的类型（按作者口径落在 `hub.lock.json`）。
-  **写端负责登记，读端从那儿取**——这份登记本身就是**为迁移设计**的。
-- 登记册是**不可再生资产**：丢了，数据还在、但读端不知道该按什么解（能看见、解不开）。
-  所以它跟着容器走，并进迁移与修复的视野。
+- 它不给自己在块的字节里占一格（盘上 body 只有 `block_body_size` 位字节），而是登记在
+  **一个专门的块**里——**类型块**：
+
+  - **载体级**：一个载体一个，跟着载体走。放 hub 级不行——登记会跨载体，那就不合适了。
+  - **它自己就是块**：所以它占槽、提交、被盲扫、可重建（[§013](index_db.md#r013)）；
+    内容用**属性区（KV）**装——类型名正是那种「天然是 KV」的东西（§6 的句柄那条）。
+  - **自描述**：自述区带标记，盲扫就认得出哪个是类型块；**写端负责登记，读端从它那儿取**。
+- 这么一放，**「锁不做账本」那条原则不用动**——登记既不在锁文件里，也不在 hub 清单里。
+- 登记是**不可再生资产**：丢了，数据还在、但读端不知道该按什么解（能看见、解不开）。
+  所以它随载体走，并进迁移与修复的视野。
 
 ### 8. 库层：增删改查
 
@@ -193,15 +200,15 @@ hub.update(block_id, body=b"...")  # 改块体
 
 ### 9. 拆解版：载体层与槽层
 
-`Pack` 把流程摊开（`from oncasket.api.park import Pack`；默认不开放、引擎不担保）：
+`Packer` 把流程摊开（`from oncasket.api.park import Packer`；默认不开放、引擎不担保）：
 
 ```python
-pack = Pack(block)
-pack.check()  # 内容自洽
-if not pack.allocate(hub):  # 找准载体并分配段
-    pack.re_allocate(hub)  # 没合适的就换一个 / 扩预算
-pack.write(hub)  # 落槽：头槽 → 溢出槽\* → data 槽\*
-pack.sync(hub)  # 与索引库对账、回流地址
+packer = Packer(block)
+packer.check()  # 内容自洽
+if not packer.allocate(hub):  # 找准载体并分配段
+    packer.re_allocate(hub)  # 没合适的就换一个 / 扩预算
+packer.write(hub)  # 落槽：头槽 → 溢出槽\* → data 槽\*
+packer.sync(hub)  # 与索引库对账、回流地址
 ```
 
 读取也拆得开（形状对应"库 → 载体 → 块 → 内容"）：
@@ -216,7 +223,7 @@ body = block.body.get()  # → 内容
 载体层（`from oncasket.api.park import Park`）：
 
 ```python
-park = hub.park(name)  # 打开一个已有的载体（不自建；建由 Pack.allocate 负责）
+park = hub.park(name)  # 打开一个已有的载体（不自建；建由 Packer.allocate 负责）
 park.counts  # slot_size / num / live / used / dead / empty（格式 §5）
 park.grow(count)  # 水线懒长——文件只长到水线，容量不预支磁盘
 park.scan()  # 盲扫（格式 §9）：认出来的块
@@ -252,6 +259,17 @@ slot.state                   # 槽状态值（header_start / header_mid / data_m
 
 - **索引那一套是真落的**（§3 的例外）：它不认你手上这份块是草稿还是现役——所以写索引要谨慎，
   它不像 `Block` 的其它动作那样只在内存里转。
+
+#### 索引什么时候落：抄数据库的时序
+
+**先数据、后索引**：块先落完（[索引库 §009](index_db.md#r009) ②–⑦ 走完，`state` 翻 `ok`、
+地址回流），**索引块随后更新**；不先落索引。
+
+- 抄的就是数据库那套：**数据是本体，索引是从属**。索引晚一步，崩了也不会出现
+  「索引指向一个盘上不存在的块」；反过来先落索引，读侧就得天天处理悬空条目。
+- **崩在中间不是坏**：索引缺条目可以补齐——索引完全能由载体重建（[§013](index_db.md#r013)），
+  对账时按载体补上，对不上的悬空条目一并清掉。
+- 「写索引要谨慎」（§3 的例外）说的是它**真落、不是草稿**，不是"立刻落"。
 
 - **`open` 是手动开关**：不开，索引块压根不收你的东西——跟数据库里不建索引就不处理是一个道理。
 - **属性侧**：`open` 之后**默认全量**，一旦 `set` 就**只听点名的**（12 个里点 3 个，其余 9 个全不进）。
@@ -338,7 +356,7 @@ demo 是随手写的（作者原话：变量名图省事用了单字母，本页
 | 雏形里的写法 | 问题 | 现在 |
 |---|---|---|
 | `from oncasket.block import …` | `oncasket/block.py` 不存在也不允许 | `from oncasket.api import …` |
-| `from oncasket.api.hub import Hub, Pack` | `Pack` 属载体层 | `Hub` 在 `api.hub`，`Pack` 在 `api.park` |
+| `from oncasket.api.hub import Hub, Pack` | `Pack` 属载体层且与 `Park` 只差一个字母 | `Hub` 在 `api.hub`，`Packer` 在 `api.park` |
 | `def init_attr(self):` | 缺返回注解（本仓所有函数都要） | 补返回注解 |
 | `def init_body(self) -> None:` 却 `return body.type.set(list)` | 注解与返回不一致 | 拆成调用 ＋ `return body` |
 | `block.attr.set(...)` 调了两次 | `set` 到底是「装进去」还是「读回来」 | 装进去并返回句柄 |
@@ -362,7 +380,5 @@ demo 是随手写的（作者原话：变量名图省事用了单字母，本页
 
 | # | 待定项 | 卡在哪 | 谁拍 |
 |---|---|---|---|
-| 1 | 类型登记册与「锁不做账本」冲突 | 本页按作者口径把登记放进 `hub.lock.json`：那就要改 [hub 布局 §005](hub.md#r005) 与 [`_hub/lock.py`](../../src/oncasket/_hub/lock.py) 里「锁不做账本」那句；若改主意就挪进 `hub.conf.json`（[§026](hub.md#r026) 的清单） | 待定 |
-| 2 | `Pack` / `Park` 只差一个字母 | 本页保留作者命名（`Pack` 是打包一个块，`Park` 是那个载体文件）；要不要改成 `Packer` / `Writer` | 待定 |
-| 3 | 根入口与细节字段 | 根索引块的 `index.*` 属性具体叫什么名、写哪几个字段；`update` 的乐观并发冲突时报哪个异常（`CorruptError` 还是另立一个） | 待定 |
-| 4 | 索引的「真落」发生在哪一刻 | 口径是索引那一套真落（§3）；但 `attr.index.open()` / `index.set()` **一调就落索引块**，还是等 `hub.write(block)` 那一口气里落？「写索引要谨慎」听着像前者，不敢替作者定 | 待定 |
+| 1 | 自描述标记与并发异常的名字 | 类型块与索引根块的自述标记具体叫什么（`type.registry` / `index.root` …）；`update` 撞上乐观并发冲突时报哪个异常（`CorruptError` 还是另立一个） | 待定 |
+| 2 | 索引块补 / 清登记成修复清单里的哪一条 | 现有 R003 只管「按载体重建索引库」；索引块缺条目、悬空条目的补与清要新登记一条（编号、触发、复检、落点） | 待定 |
