@@ -16,4 +16,5 @@
 | 门禁：本地钩子 / CI | [gate.txt](gate.txt) | [gate.md](gate.md) | 027 |
 | 变更日志：一版一文件与结构门禁 | 无机读事实依据（结构契约由 [scripts/check_changelog.py](../../scripts/check_changelog.py) 钉死） | [changelog.md](changelog.md) | 030 |
 | 包与目录：公开面 / 域子包 / 依赖分层 | 结构契约由 [tests/test_public_surface.py](../../tests/test_public_surface.py)、[tests/test_import_layers.py](../../tests/test_import_layers.py) 钉死 | [packages.md](packages.md) | 031 |
+| 公开 API：下游怎么造一个块 | 公开名单即 [`oncasket/api/__init__.py`](../../src/oncasket/api/__init__.py) 的 `__all__`；形态草案在 [examples/block_api_sketch.py](../../examples/block_api_sketch.py) | [api.md](api.md) | 022 |
 | 修复：先修再判坏与策略库 | 策略清单尚无机读文件（见该篇待定） | [repair.md](repair.md) | 032 |
