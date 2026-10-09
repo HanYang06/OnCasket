@@ -164,6 +164,15 @@ repos:
         files: ^docs/CHANGELOG/.*\.md$
         pass_filenames: false
 
+      # 索引库的建库 DDL 与基准指纹是 config/index_db.sql 的生成物（G21）：
+      # 手改生成物、或改了 .sql 没重跑生成脚本，这一步都会红。
+      - id: index-schema
+        name: index-schema（索引库生成物）
+        entry: uv run python scripts/gen_index_schema.py --check
+        language: system
+        files: ^(config/index_db\.sql|src/oncasket/_index/schema_gen\.py|scripts/gen_index_schema\.py)$
+        pass_filenames: false
+
       - id: pytest
         name: pytest（推送前跑一遍单测）
         entry: uv run pytest -q

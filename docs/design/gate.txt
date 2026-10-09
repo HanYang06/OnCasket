@@ -1,4 +1,4 @@
-encoding: utf-8 version: 9e1ae0d1ee9f2d36a36ee17ee0c3c6eab095d6c68ff91b255f16c31b51642a5f
+encoding: utf-8 version: b477625812ab15e4fa8b93d7f7fe6fc939c885bc7cce85711b9c7ecaac52b6f6
 endian: little
 # 门禁清单：唯一事实源。一条 gate 一段，字段顺序固定，缺项留空不删
 # 层：提交（pre-commit）| 提交信息（commit-msg）| 推送（pre-push）| 手动（manual）| CI（远端）
@@ -125,3 +125,9 @@ gate G20
     layer           提交
     block           必需
     impl            .pre-commit-config.yaml, scripts/check_changelog.py, docs/CHANGELOG/
+
+gate G21
+    name            索引库生成物：建库 DDL 与基准指纹同 config/index_db.sql 一致
+    layer           提交
+    block           必需
+    impl            .pre-commit-config.yaml, scripts/gen_index_schema.py, src/oncasket/_index/schema_gen.py

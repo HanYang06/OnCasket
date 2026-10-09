@@ -87,6 +87,10 @@ jobs:
       - name: Changelog structure
         run: uv run python scripts/check_changelog.py
 
+      # 索引库生成物：建库 DDL 与基准指纹必须同 config/index_db.sql 一致（G21），与本地那道同源。
+      - name: Index schema snapshot
+        run: uv run python scripts/gen_index_schema.py --check
+
       # actionlint 校验 .github/workflows 自身的语法/表达式错误。
       # 本机没有 Go 工具链，所以它只在这里跑。
       - name: Actionlint

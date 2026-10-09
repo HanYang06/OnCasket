@@ -55,6 +55,7 @@ uv run pre-commit run --all-files --hook-stage manual    # pip-audit，需联网
 | G15 覆盖率 | 补测试；门槛在 `[tool.coverage.report]` 的 `fail_under` |
 | G15/G16/G18 | 看 job 日志；依赖漏洞走 `uv lock` 升级 |
 | G20 变更日志 | 按提示改结构；段位、切段与写法见[变更日志设计](changelog.md) |
+| G21 索引库生成物 | 改完 `config/index_db.sql` 跑 `uv run python scripts/gen_index_schema.py` 重生成并提交 |
 
 ### 4. 边界
 
