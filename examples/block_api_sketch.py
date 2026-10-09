@@ -75,26 +75,26 @@ class DemoData:
         return body
 
 
-def lookup(demo: DemoData) -> bytes:
-    """按属性取值反查块 id：先取属性项，再拿它去问索引块。
+def lookup(demo: DemoData) -> list[bytes]:
+    """按属性取值反查块 id：索引对象绑住 hub 与属性名，拿取值去问。
 
     Args:
         demo: 已经声明好的块。
 
     Returns:
-        `block_id`（16 B）。
+        `block_id` 表（`only_one` 时长度 ≤ 1，签名不变）。
     """
     title = demo.attr.get("title").item()
-    return AttrIndex().search(title)
+    return AttrIndex(demo.h, "title").search(title)
 
 
-def lookup_by_body(demo: DemoData) -> bytes:
+def lookup_by_body(demo: DemoData) -> list[bytes]:
     """按块体内容哈希反查块 id——内容一样就是同一份，天然去重。
 
     Args:
         demo: 已经声明好的块。
 
     Returns:
-        `block_id`（16 B）。
+        `block_id` 表。
     """
-    return BodyIndex().search(demo.body.get().hash())
+    return BodyIndex(demo.h).search(demo.body.get().hash())
