@@ -58,7 +58,8 @@
   「`kind` 开放取值、不枚举、不加 CHECK」是同一个口径。
 - **不做取值校验**：字符串让它流过去，打错字是调用方自己的事，引擎不替调用方认字。
   这不是「放开一道检查」，是**根本不立这道检查**——没有枚举，就没有「非法取值」这个概念。
-- **索引型不是下游拼的**：索引块由索引机制产生（§7），下游拿到的是引擎那边造好的东西。
+- **索引型两种来路**：引擎把 `AttrIndex` / `BodyIndex` 造好（预制菜），下游**也可以自己造索引块**
+  （§8 末）——引擎不拦。角色取值不校验，字符串是什么就是什么。
 - `Ref` 与 `kind` 的分工：`Ref` 是角色标签，`kind` 是「装了什么 / 索引了什么」——两者都开放。
 
 ### 5. 属性：身份就是一条 KV，锁是可变性开关
@@ -103,13 +104,13 @@
 
 ```python
 self.attr.index.open()  # 给这条属性开索引
-self.attr.index.set("", on_one=bool, only_one=bool)
+self.attr.index.set("title", no_one=bool, only_one=bool)
 
 from oncasket.api.index import AttrIndex, BodyIndex
 
 aix = AttrIndex()
 block_id = aix.search("")  # 按属性取值反查
-title = self.attr.get("").item()
+title = self.attr.get("title").item()
 block_id = aix.search(title)
 
 bix = BodyIndex()
@@ -117,11 +118,24 @@ body = self.body.get().hash()  # 块体内容哈希
 block_id = bix.search(body)
 ```
 
+- 两个开关管的是**「一个取值后面挂几个 `block_id`」**：
+
+  | 开关 | 含义 | 默认 |
+  |---|---|---|
+  | `no_one` | 这条属性**不止一个**块有：一个取值后面是一**串** `block_id`（列表） | **默认开**，不写就是它 |
+  | `only_one` | 这条属性**全局唯一**：一个取值后面只许有一个 `block_id` | 默认关 |
+
+- 两个都关 = **悬空**：既不说可以有多个、也不说唯一，引擎**当场报错**——那是薛定谔的索引，
+  查出来是一个还是一串没人知道。
+- `BodyIndex` 没有这两个开关：它按**内容哈希**查，内容一样就是同一份。
+
 - **索引的产物只有一样：`block_id`**。拿到 id 之后就没有难事了——地址在库里、
   内容在载体上，读回走 §2 的正常那条路。
-- `AttrIndex` / `BodyIndex` 是 `oncasket.api.index` 的公开名字；
-  `BodyIndex` 走的是**内容哈希**，天然就是去重那条路。
-- 索引块怎么组织（一层 KV 还是多级、根在哪、要不要范围查询）见待定 4。
+- `AttrIndex` / `BodyIndex` 是 `oncasket.api.index` 的公开名字，是**引擎原生只提供的两种**。
+- **其余索引块随便造**：想索引别的东西就自己造索引块，引擎不拦——逻辑本来就是确定的
+  （拿到 `block_id` 之后按你自己的数据结构去查），自由度给了就不必再管。
+  这两种原生索引的特殊之处只在于「引擎替你把它造好了」。
+- 索引块怎么组织（一层 KV 还是多级、根在哪、要不要范围查询）见待定 3。
 
 ### 9. block_id：引擎生成，不给指定入口
 
@@ -139,7 +153,8 @@ block_id = bix.search(body)
 | `def init_attr(self):` | 缺返回注解（本仓所有函数都要） | 补 `-> Attr` |
 | `def init_body(self) -> None:` 却 `return body.type.set(list)` | 注解与返回不一致 | 拆成调用 ＋ `return body` |
 | `self.b.attr.set(...)` 调了两次（`init_attr` 内一次、`__init__` 里又一次） | `set` 到底是「装进去」还是「读回来」 | 见待定 3 |
-| `attr.lock("item")` | 与 `lock.all()` 长短不一 | 统一成 `attr.lock.item()` |
+| `attr.lock("item")` | 与 `lock.all()` 长短不一，且没带参数 | 统一成 `attr.lock.item(名)` |
+| `on_one=` | 写反了 | `no_one=` |
 
 ### 11. 已经对的地方
 
@@ -152,8 +167,6 @@ block_id = bix.search(body)
 
 | # | 待定项 | 卡在哪 | 谁拍 |
 |---|---|---|---|
-| 1 | 分表归属怎么定 | 取值不校验；那身份行按什么进 `data_block` / `index_block`——按「谁创建」（下游声明 vs 索引机制产生），还是按那个字符串的值 | 待定 |
-| 2 | 类型名怎么到读端手上、谁编解码 | §6 定了它的作用是推理；但读端是「写时随块带走」还是「读时由调用方声明」，以及编码器归引擎内置 / 调用方传入 / 注册表 | 待定 |
-| 3 | 入口对象与读写签名 | 草案没有 handle / session：谁写、写到哪个 hub、`write` / `read` 什么签名 | 待定 |
-| 4 | 索引块怎么组织 | 一层 KV 还是多级、根入口在哪（重建也卡在根入口上）、`AttrIndex.search` 要不要前缀 / 范围、索引块自己要不要被再索引 | 待定 |
-| 5 | 索引声明的参数 | `attr.index.set("", on_one=bool, only_one=bool)` 两个开关各管什么（唯一性？单块？），以及 `index.open()` 之外还要不要关闭 / 重建 | 待定 |
+| 1 | 类型名怎么到读端手上、谁编解码 | §6 定了它的作用是推理；但读端是「写时随块带走」还是「读时由调用方声明」，以及编码器归引擎内置 / 调用方传入 / 注册表 | 待定 |
+| 2 | 入口对象与读写签名 | 草案没有 handle / session：谁写、写到哪个 hub、`write` / `read` 什么签名 | 待定 |
+| 3 | 索引块怎么组织 | 原生两种的内部结构（一层 KV 还是多级）、**根入口**在哪、`AttrIndex.search` 要不要前缀 / 范围；根入口很可能与路线 020 的「根入口」是同一个东西，该一起设计。自定义索引块引擎不管组织 | 待定 |

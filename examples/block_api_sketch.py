@@ -34,8 +34,11 @@ class DemoData:
         self.b.attr.set(self.attr)
         self.b.body.set(self.body)
 
+        self.attr.index.open()
+        self.attr.index.set("title", no_one=True)  # 默认就是 no_one：一个取值可以挂一串 block_id
+
         self.attr.lock.all()
-        self.attr.lock.item()
+        self.attr.lock.item("title")
 
     def init_attr(self) -> Attr:
         """声明属性区：加一条 `title`，再改它的值。
