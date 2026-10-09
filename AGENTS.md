@@ -35,6 +35,7 @@ uv run bandit -c pyproject.toml -r src        # 安全静态扫描
 uv run zizmor .github/workflows               # Actions 审计
 uv run pip-audit                              # 依赖漏洞（需联网）
 uv run python scripts/stamp_version.py -c config/*.txt docs/design/*.txt   # 版本标记校验
+uv run python scripts/gen_index_schema.py --check                         # 索引库生成物校验（G21）
 ```
 
 **不要**用 `pip install`，也不要绕过 `uv run` 去调 `.venv/Scripts/*.exe`
@@ -138,7 +139,7 @@ uv run python scripts/stamp_version.py -c config/format.txt # 校验
 
 | 层 | 触发 | 内容 |
 |---|---|---|
-| 提交 | `pre-commit` | 文件卫生、ruff check / format、mypy、codespell、bandit、zizmor、第三方许可清单、版本标记、变更日志结构 |
+| 提交 | `pre-commit` | 文件卫生、ruff check / format、mypy、codespell、bandit、zizmor、第三方许可清单、版本标记、变更日志结构、索引库生成物 |
 | 推送 | `pre-push` | pytest |
 | 手动 | `manual` | pip-audit（需联网） |
 | CI | PR / push main | 上述全部 + markdownlint + actionlint + gitleaks + CodeQL + Dependency Review + Scorecard |
@@ -158,13 +159,15 @@ LICENSE / NOTICE         # Apache-2.0 许可与项目归属
 THIRD_PARTY_NOTICES.md   # 运行时依赖的许可证清单（自动生成，勿手改）
 config/                  # 事实依据：机读配置（位级布局 .txt / schema .sql）
 src/oncasket/            # 引擎实现；__init__.py 与 api/ 是仅有的公开面，其余顶层条目私有
-src/oncasket/_hub/       # 005/026 hub 布局、清单与锁
+src/oncasket/api/        # 公开面：block / hub / park / slot / index（022 冻结；__all__ 仍为空）
+src/oncasket/_hub/       # 005/026/036 hub 布局、清单与锁（含写锁等待与超时）
 src/oncasket/_format/    # 021 位级格式：spec / slot / block / park / scan（已实现）
-src/oncasket/_index/     # 006/008–013 索引库
+src/oncasket/_index/     # 006/008–013 索引库；033/034 反查索引块与类型条目
 src/oncasket/_alloc/     # 014/015 空洞分配与死槽判定
-src/oncasket/_ops/       # 跨域编排：session / write / read / delete
+src/oncasket/_ops/       # 跨域编排：session / write / read / delete（002/003/007/009/035）
 src/oncasket/_repair/    # 032 修复：先修再判坏；编号在 ids.py，一条修复一个模块
-scripts/stamp_version.py # 结构文件版本标记（门禁 G04）
+examples/                # 形态草案：block_api_sketch.py（API 落地前跑不起来，但受 ruff 管）
+scripts/                 # 门禁脚本：stamp_version（G04）/ check_changelog（G20）/ gen_index_schema（G21）
 tests/                   # 门禁测试（没有 __init__.py；镜像 src 的域）
 docs/roadmap/            # 路线图（权威）
 docs/design/             # 设计篇（口径 + 说明篇）

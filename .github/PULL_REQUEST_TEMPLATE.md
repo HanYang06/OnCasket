@@ -18,8 +18,10 @@
 - [ ] `test` 测试
 - [ ] `build` 构建系统或依赖
 - [ ] `ci` CI 与自动化
+- [ ] `deps` 依赖更新
 - [ ] `chore` 杂项
 - [ ] `revert` 回滚
+- [ ] `style` 格式与排版
 - [ ] **`BREAKING CHANGE` 破坏性变更**
 
 ## 自查清单
@@ -32,7 +34,8 @@
 - [ ] 新增或修改的行为都有对应测试
 - [ ] 用户可见的行为变化已同步到 `docs/`（设计口径见 `docs/design/`，落点见路线图）
 - [ ] 用户可见的变化已记入 `docs/CHANGELOG/index.md` 的 `[Unreleased]`（纯内部改动除外）
-- [ ] 结构文件（`docs/design/*.txt`）改过就重盖了版本标记
+- [ ] 结构文件（`config/*.txt`、`docs/design/*.txt`）改过就重盖了版本标记
+- [ ] 改过 `config/index_db.sql` 就重跑了 `scripts/gen_index_schema.py`（生成物与指纹，G21）
 - [ ] 本 PR 不含任何密钥、凭据、`.env` 文件
 - [ ] 本 PR 不含运行时产物与构建缓存
 - [ ] 所有文件保持 UTF-8 无 BOM、LF 行尾

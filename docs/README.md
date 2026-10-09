@@ -13,7 +13,7 @@
 |---|---|---|---|
 | 路线图 | `docs/roadmap/` | 做什么、挂哪篇设计、落在哪个版本 | [路线图结构说明](roadmap/README.md) |
 | 设计 | `docs/design/` | 怎么做（口径）、为什么 | 本页 |
-| 代码 | `src/` | 实现 | — |
+| 代码 | `src/`、`examples/` | 实现；`examples/` 是形态草案（API 落地前跑不起来，但受 ruff 管） | [公开 API 设计](design/api.md) |
 | 记录 | `docs/CHANGELOG/` | 已发布版本的变更事实，一版一份 | [变更日志设计](design/changelog.md) |
 
 **记录层不在权威顺序里**：它只记已发生的事实，不推翻任何层，也不作任何设计的依据。

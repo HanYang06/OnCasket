@@ -44,7 +44,7 @@ uv run pre-commit run --all-files --hook-stage pre-push
 uv run pytest --cov --cov-report=term-missing
 ```
 
-完整清单（编号 G01–G20）见 [`docs/design/gate.txt`](docs/design/gate.txt)，
+完整清单（编号 G01–G21）见 [`docs/design/gate.txt`](docs/design/gate.txt)，
 说明见 [`docs/design/gate.md`](docs/design/gate.md)。每一次改动都要过 CI 的四组作业；
 **CI 是主门禁**，本地钩子只是省往返。
 
