@@ -27,3 +27,11 @@ def test_version_comes_from_pyproject() -> None:
 def test_cli_prints_greeting(capsys: pytest.CaptureFixture[str]) -> None:
     assert main() == 0
     assert capsys.readouterr().out == "Hello from oncasket!\n"
+
+
+def test_description_matches_readme() -> None:
+    """定位句两处一致：`description` 必须逐字出现在 README 首段，否则漂移没人发现。"""
+    project = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
+    description = project["project"]["description"]
+    assert description
+    assert description in (ROOT / "README.md").read_text(encoding="utf-8")

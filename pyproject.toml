@@ -1,7 +1,8 @@
 [project]
 name = "oncasket"
 version = "1.0.0a1"
-description = "Add your description here"
+# 定位句：与 README.md 首段**逐字一致**，由 tests/test_smoke.py 钉住。改一处就得改另一处。
+description = "Single-machine storage engine kernel: three on-disk layers (hub, park, slot); a block never crosses a park"
 readme = "README.md"
 license = "Apache-2.0"
 license-files = ["LICENSE", "NOTICE"]
