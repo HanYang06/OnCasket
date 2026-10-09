@@ -34,8 +34,9 @@
   [`api/`](../../src/oncasket/api/)。公开名字在各自的 `__all__` 里逐个列出；**公开签名里不出现
   私有类型**（否则 `oncasket._ops.write.Handle` 会漏进用户的注解与 repr）。
 - `api/` 是**整体**拆分，不是「再散出几个公开模块」：门面长大后按域拆进 `api/`
-  （如 `api/block.py`），`api/__init__.py` 只做重导出。下游 import 的路径只有这一条，
-  冻结时也只记这一条——比在顶层长出 `oncasket/hub.py`、`oncasket/index.py` 强得多。
+  （如 `api/block.py`、`api/index.py`），`api/__init__.py` 只做重导出，子模块自己也有 `__all__`。
+  下游 import 的路径只有这一条，冻结时也只记这一条——比在顶层长出 `oncasket/hub.py`、
+  `oncasket/index.py` 强得多。
 - `__version__` 的单一来源是 `pyproject.toml`，运行时经 `importlib.metadata` 取，由冒烟测试校。
 - 守卫：[`tests/test_public_surface.py`](../../tests/test_public_surface.py)——白名单与两个
   `__all__` 的自洽都查。
