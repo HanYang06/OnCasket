@@ -7,8 +7,8 @@
     version = sha256(SALT + 首行去掉 version 值之后的全文).hexdigest()
 
 用法：
-    python scripts/stamp_version.py docs/design/format.txt docs/design/gate.txt   # 写入
-    python scripts/stamp_version.py -c docs/design/*.txt   # 门禁 G04：不符退出 1
+    python scripts/stamp_version.py config/format.txt docs/design/gate.txt   # 写入
+    python scripts/stamp_version.py -c config/*.txt docs/design/*.txt   # 门禁 G04：不符退出 1
 """
 
 from __future__ import annotations
@@ -23,8 +23,10 @@ from pathlib import Path
 # 盐。改动它等于改动所有 version 值，改前先想清楚。
 SALT = b"oncasket/format"
 
-# 首行形如：encoding: utf-8 version: <64 位十六进制>
-HEAD = re.compile(r"^(?P<lead>encoding:\s*\S+\s+version:)[ \t]*(?P<hash>[0-9a-f]*)[ \t]*$")
+# 首行形如：encoding: utf-8 version: <64 位十六进制>，尾随标点（如 ;）原样保留
+HEAD = re.compile(
+    r"^(?P<lead>encoding:\s*\S+\s+version:)[ \t]*(?P<hash>[0-9a-f]*)(?P<tail>[ \t;]*)$"
+)
 
 
 def split_head(text: str) -> tuple[re.Match[str], list[str]]:
@@ -47,7 +49,7 @@ def split_head(text: str) -> tuple[re.Match[str], list[str]]:
 
 
 def digest(text: str) -> str:
-    """算内容指纹：首行保留 `encoding: … version:`、值抹空，其余原样，再带盐算 SHA-256。
+    """算内容指纹：首行保留 `encoding: … version:` 与尾随标点、值抹空，其余原样，再带盐算 SHA-256。
 
     Args:
         text: 全文。
@@ -56,7 +58,7 @@ def digest(text: str) -> str:
         64 位十六进制摘要。
     """
     match, lines = split_head(text)
-    body = "".join([match.group("lead") + "\n", *lines[1:]])
+    body = "".join([match.group("lead") + match.group("tail") + "\n", *lines[1:]])
     return hashlib.sha256(SALT + body.encode("utf-8")).hexdigest()
 
 
@@ -75,7 +77,7 @@ def stamp(path: Path, *, check: bool) -> bool:
     want = digest(text)
 
     if not check:
-        lines[0] = f"{match.group('lead')} {want}\n"
+        lines[0] = f"{match.group('lead')} {want}{match.group('tail')}\n"
         path.write_bytes("".join(lines).encode("utf-8"))
         print(f"{path}: version → {want}")
         return True

@@ -81,7 +81,7 @@ jobs:
 
       # 结构文件的内容指纹：漏盖即红。pre-commit 在本地拦一道，CI 再拦一道。
       - name: Structure file version stamps
-        run: uv run python scripts/stamp_version.py -c docs/design/*.txt
+        run: uv run python scripts/stamp_version.py -c config/*.txt docs/design/*.txt
 
       # actionlint 校验 .github/workflows 自身的语法/表达式错误。
       # 本机没有 Go 工具链，所以它只在这里跑。

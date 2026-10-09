@@ -1,4 +1,4 @@
-encoding: utf-8 version: 829035179a940b1accb55f36ef7ae3395f0dde46de15154ad19cc9c5e607051f
+encoding: utf-8 version: 2e31dfdfc124097d2eb85a3b7ebf8d2ff0ba10d08350f477ec6bb119bc5dd64b
 endian: little
 # 门禁清单：唯一事实源。一条 gate 一段，字段顺序固定，缺项留空不删
 # 层：提交（pre-commit）| 提交信息（commit-msg）| 推送（pre-push）| 手动（manual）| CI（远端）
@@ -25,7 +25,7 @@ gate G03
     impl            .pre-commit-config.yaml, pyproject.toml
 
 gate G04
-    name            结构文件版本标记：docs/design/*.txt 的内容指纹
+    name            结构文件版本标记：config/*.txt 与 docs/design/*.txt 的内容指纹
     layer           提交
     block           必需
     impl            .pre-commit-config.yaml, scripts/stamp_version.py

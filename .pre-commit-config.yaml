@@ -141,11 +141,12 @@ repos:
         files: ^\.github/workflows/.*\.ya?ml$
         pass_filenames: false
 
+      # config/*.txt 是配置型事实依据；docs/design/*.txt 目前只剩 gate.txt，待门禁清单改掉后收窄
       - id: stamp-version
-        name: 版本标记（docs/design 结构文件的内容指纹）
+        name: 版本标记（config / docs/design 结构文件的内容指纹）
         entry: uv run python scripts/stamp_version.py -c
         language: system
-        files: ^docs/design/.+\.txt$
+        files: ^(config|docs/design)/.+\.txt$
 
       - id: third-party-notices
         name: third-party-notices（THIRD_PARTY_NOTICES.md 与 uv.lock 是否一致）
