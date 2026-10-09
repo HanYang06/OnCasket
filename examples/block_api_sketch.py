@@ -31,6 +31,9 @@ class DemoData:
         self.b.attr.set(self.attr)
         self.b.body.set(self.body)
 
+        self.attr.lock.all()
+        self.attr.lock("item")
+
     def init_attr(self) -> Attr:
         """声明属性区：加一条 `title`，再改它的值。
 
