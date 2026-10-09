@@ -42,8 +42,8 @@ THIRD_PARTY_NOTICES.md  linguist-generated=true
 docs/**                 linguist-documentation=true
 *.md                    text
 
-# CHANGELOG 冲突取并集，避免每次发版都产生无意义冲突
-CHANGELOG.md            merge=union
+# 变更日志索引会被并行分支同时追加，取并集避免无意义冲突；版本文件一版一份，本身不冲突
+docs/CHANGELOG/index.md merge=union
 
 # ---------------------------------------------------------------------------
 # 归档时的导出控制

@@ -15,6 +15,7 @@
 | 路线图 | [`docs/roadmap/`](docs/roadmap/) | 做什么、关联哪篇设计、落在哪个版本 |
 | 设计 | [`docs/design/`](docs/design/) | 口径、为什么 |
 | 代码 | `src/` | 实现 |
+| 记录 | [`docs/CHANGELOG/`](docs/CHANGELOG/) | 已发布版本的变更事实，一版一份 |
 
 - 三层不一致时**改下层**；实测证明上层不成立时才改上层，而改上层只有两种动作：
   **新增条目**，或**撤回条目的 `决策状态`**（`已定` → `待裁` / `已废弃`）。
@@ -43,7 +44,7 @@ uv run pre-commit run --all-files --hook-stage pre-push
 uv run pytest --cov --cov-report=term-missing
 ```
 
-完整清单（编号 G01–G19）见 [`docs/design/gate.txt`](docs/design/gate.txt)，
+完整清单（编号 G01–G20）见 [`docs/design/gate.txt`](docs/design/gate.txt)，
 说明见 [`docs/design/gate.md`](docs/design/gate.md)。每一次改动都要过 CI 的四组作业；
 **CI 是主门禁**，本地钩子只是省往返。
 
@@ -63,7 +64,20 @@ Conventional Commits，**允许中文 subject**，一个提交只做一件事：
 git config commit.template .gitmessage
 ```
 
-## 5. 许可与版权
+## 5. 变更日志
+
+一版一文件，放在 [`docs/CHANGELOG/`](docs/CHANGELOG/)：`index.md` 是索引，未发布的变更写在它的
+`[Unreleased]` 里；发布后切成 `docs/CHANGELOG/<版本>.md`，并在 `## 已发布` 加一行。
+它是**记录层**，不在「路线图 > 设计 > 代码」里——只记已发生的事实。
+
+- **该记**：公开 API、落盘格式、索引库 schema 指纹、依赖与 Python 支持范围、CLI、
+  安装与发布方式、缺陷修复。
+- **不记**：`docs` / `test` / `ci` / `chore` / `style` 类改动、外部行为不变的内部重构。
+- 能挂路线条目的写 `（[路线图 030](docs/roadmap/1.x.md)）`；修复类写「无路线条目」。
+- 结构由门禁 G20 校验（只查结构、不查内容）：`uv run python scripts/check_changelog.py`。
+- 段位、切段流程与判据见[变更日志设计](docs/design/changelog.md)。
+
+## 6. 许可与版权
 
 - 仓库整体是 **Apache-2.0**：见 [LICENSE](LICENSE) 与 [NOTICE](NOTICE)。
 - 每个 Python 文件顶部必须有两行 SPDX 许可头，由 ruff 的 `CPY` 规则强制；新增文件照抄现有文件。
@@ -71,12 +85,12 @@ git config commit.template .gitmessage
   生成到 [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md)；**改了依赖就要重跑**，CI 的 `--check` 会因此变红。
 - 中文标点是有意为之（`RUF001/002/003` 已豁免），不要「顺手修好」。
 
-## 6. 合并方式
+## 7. 合并方式
 
 改动一律走「推分支 → 开 PR → 等 CI 绿 → 合并」，**不要直推 `main`**。
 PR 描述按 [`.github/PULL_REQUEST_TEMPLATE.md`](.github/PULL_REQUEST_TEMPLATE.md) 的自查清单填写。
 
-## 7. 结构扩展提案
+## 8. 结构扩展提案
 
 [`config/`](config/) 下的结构文件与数据库表，都是**冻结的内部资产**：不因为下游依赖项目的
 需要就直接改。要加表、加列、加索引、加取值，先开一个 issue
