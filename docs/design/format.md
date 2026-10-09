@@ -45,25 +45,29 @@
 | 形态 | 头 160 位 | 其后 |
 |---|---|---|
 | 头槽 `header_slot` | `header_slot_state` + `slot_write_check` | 六个计数 `160…352` ＋ 自述区 `352…slot_size` |
-| 溢出头槽 `header_slot` | `header_slot_state` + `slot_write_check` | `block_self_attr_len` `160…192` ＋ 自述区 `192…slot_size` |
+| 溢出头槽 `header_slot` | `header_slot_state` + `slot_write_check` | `block_self_attr_num` `160…192` ＋ 自述区 `192…slot_size` |
 | data 槽 `data_slot` | `data_slot_state` + `slot_write_check` | `data_slot_body` `160…slot_size` |
 
 - 二选一：`slot` 行写的是 `header_slot|data_slot`，一个槽只能是其中一种形态。
 - **自述区分段连续**：段 k 落在第 k 个头槽里。段容量 = 头槽 `slot_size − 352`、溢出槽 `slot_size − 192`
   （含同槽的 `block_id` 128 位）→ 实际可放属性 = 头槽 `slot_size − 480`、溢出槽 `slot_size − 320` 位。
-- **属性不跨槽**：自述区是一条条属性的序列，一条属性（名 + 值）是**不可分割**的最小单位。放不进本槽剩余
-  容量就**整条挪到下一个头槽开头**，本槽尾巴留 `none`；`block_self_attr_len` 只报本段用了多少位。
+- **自述区是一个属性字典**（KV），不是一段字节流：`block_id` 之后跟着一条条属性，每段只数**条数**
+  （`block_self_attr_num`），不记位长——字典有多大由条数说了算。
+- **一条条目 = `<名长:int32><名:utf-8><值长:int32><值:字节>`**（两个长度都按**字节**计）；
+  名是键、**全局唯一**，落盘**按名的 utf-8 字节序升序**——同一组属性 ⇒ 同一串字节，
+  `global_hash` 因此是内容确定的。
+- 条目**不可分割**：放不进本槽剩余容量就**整条挪到下一个头槽开头**，本槽尾巴留 `none`。
 - 为什么不能腰斩：头槽自述区前垫着固定字段，腰斩的值中间会夹进 `header_slot_state` 32 +
-  `slot_write_check` 128 + `block_self_attr_len` 32 + `block_id` 128 = 320 位引擎字段，读端认不出后半截
+  `slot_write_check` 128 + `block_self_attr_num` 32 + `block_id` 128 = 320 位引擎字段，读端认不出后半截
   属于谁——等于损坏。
 - **溢出头槽个数没有上限**（`header_slot_num` 是 int32）：属性放不下就往后开一个，直到放完；
   溢出槽除了那 320 位固定字段，剩下的空间全归自述区——这就是它存在的理由。
 - **单条属性上限** = 溢出头槽可放容量 `slot_size − 320` 位；更大的属性进不了自述区
   （抛异常，见[索引库 §009](index_db.md#r009) 异常 1）。
-- `block_id` 与 `block_self_attr_len` 在**每个头槽里各有一份**，各管各的那一段：
-  `block_id` 是块的身份证（各头槽同值），`block_self_attr_len` 只报**本段**长度。
+- `block_id` 与 `block_self_attr_num` 在**每个头槽里各有一份**，各管各的那一段：
+  `block_id` 是块的身份证（各头槽同值），`block_self_attr_num` 只数**本段**的条数。
 - 溢出槽只重复这两样，不重复六个计数。
-- **当地解决当地，不跨槽**：槽上的字段只描述本槽这一段；要跨段的总量（比如自述属性总长）自己求和，不加字段。
+- **当地解决当地，不跨槽**：槽上的字段只描述本槽这一段；要跨段的总量（比如属性总条数）自己求和，不加字段。
 
 | 头槽字段 | 语义 |
 |---|---|
@@ -72,7 +76,7 @@
 | `data_slot_num` | data 槽数（可为 0） |
 | `data_slot_end` | data 区最后一个槽的槽 id（即链尾） |
 | `block_body_size` | 块体逻辑长度（位，不含填充） |
-| `block_self_attr_len` | **本段**自述属性长度（位，不含填充）；总长 = 各头槽求和 |
+| `block_self_attr_num` | **本段**属性**条数**（不是位长）；总条数 = 各头槽求和 |
 | `block_id` | 逻辑块 ID：uuid4，128 位 |
 
 ### 4. `slot_state`：两套体系
@@ -109,7 +113,7 @@
 
 1. 现有 park 被别的进程锁着；
 2. 现有 park 预算（`slot_num`）已满；
-3. 现有 park 坏了。
+3. 现有 park 坏了——**「坏了」怎么判、怎么处置，见[修复 §032](repair.md#r032)：先修，修不了才判坏**。
 
 - 每个 park 在创建时按预算定下 `slot_num × slot_size`，此后自身不变；不同 park 可以不同。
 - **缺省预算**：`slot_num = 2^20`（配缺省 `slot_size` 8192 位 = 容量 1 GiB）；调用方可上调，且必须

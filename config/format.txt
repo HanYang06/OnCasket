@@ -1,4 +1,4 @@
-encoding: utf-8; version: b967da9c3f9ce4d0a75b85086b5804d7cf638fc922a8025d661f9cf3565e6152;
+encoding: utf-8; version: 077ab2aca25ea8df0a51d5b2d1e15208bb8d97c4c6a18830050d0fbb9ef6f766;
 endian: little;
 Offset-unit: bit;
 offset-base: parent;
@@ -6,6 +6,10 @@ extent: region=start:length; field=start:end;
 origin: header=slot-start;
 divider: ruler=section-kind; arrows=form-break;
 # 行式 DSL：<名称> <类型> <偏移|取值>；缩进 4 空格/级；子区偏移相对其父区；三列按显示宽度对齐
+# 自述区：每个头槽各带一段，段内 = block_id 128 位 + **属性字典**（KV）；逐段只数条目**个数**
+#         （block_self_attr_num），不记位长。一条条目 = <名长:int32><名:utf-8><值长:int32><值:字节>，
+#         长度按字节；名是键、**全局唯一**，落盘**按名的 utf-8 字节序升序**——同一组属性 ⇒ 同一串字节。
+#         条目不可分割：放不下就整条挪到下一个头槽开头，本槽尾巴留 none。总条数 = 各头槽求和，不加字段。
 
 |-------------------------------|----------------------|----------------|
     # pack_file 格式
@@ -32,10 +36,10 @@ slot                            header_slot             header:slot_size
     data_slot_num               int32                   224:256
     data_slot_end               int32                   256:288
     block_body_size             int32                   288:320
-    block_self_attr_len         int32                   320:352
-    block_self_attr             none                    352:slot_size-352
+    block_self_attr_num         int32                   320:352
+    block_self_attr             list                    352:slot_size-352
         block_id                uuid4                   0:128
-        none                    none                    128:slot_size-480
+        attr_entry              none                    128:slot_size-480
 
 >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
@@ -43,10 +47,10 @@ slot                            header_slot             header:slot_size
 slot                            header_slot             header:slot_size
     header_slot_state           slot_state              header:32
     slot_write_check            xxh128                  32:160
-    block_self_attr_len         int32                   160:192
-    block_self_attr             none                    192:slot_size-192
+    block_self_attr_num         int32                   160:192
+    block_self_attr             list                    192:slot_size-192
         block_id                uuid4                   0:128
-        none                    none                    128:slot_size-320
+        attr_entry              none                    128:slot_size-320
 
 >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
