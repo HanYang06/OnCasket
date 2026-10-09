@@ -100,11 +100,28 @@
 
 - 索引块**就是块**，所以它跟着载体走：占槽、提交、被盲扫、可重建（[§013](index_db.md#r013)）。
   这是立第三张表做不到的——那就等于把索引另立成与载体并列的第二份真相。
-- 声明与查询（草案）：
+
+#### `open()`：手动开，不开就不索引
+
+**索引不会自己长出来**：不手动 `open`，这两个索引块压根不会收你的东西——跟数据库里不建索引
+就不处理查询是一个道理。`open` 是唯一的开关，属性与块体各有各的。
+
+**属性那边：`open` 之后默认全量，一旦 `set` 就只听 `set` 的。**
+
+- 一个 `set` 都不调 → 这个块的**全部属性**都进索引；
+- 调了 `set` → 只索引点过名的那些，**其余一个都不进**（12 个属性里 `set` 了 3 个，
+  剩下 9 个全都不索引）。
+
+**块体那边：`open` 之后，写入时主动留存一份正文。**
+
+- 留存的是**纯正文**：剔掉所有非正文部分（填充等），对**完整正文**算一个哈希，按哈希留存；
+- 没有 `set` 这样的点名机制，`open` 就是全部。
 
 ```python
-self.attr.index.open()  # 给这条属性开索引
-self.attr.index.set("title", no_one=bool, only_one=bool)
+self.attr.index.open()
+self.attr.index.set("title", only_one=bool)  # 点名 title；不 set 就是全量
+
+self.body.index.open()  # 写入时留存一份纯正文，按正文哈希建索引
 
 from oncasket.api.index import AttrIndex, BodyIndex
 
@@ -114,20 +131,18 @@ title = self.attr.get("title").item()
 block_id = aix.search(title)
 
 bix = BodyIndex()
-body = self.body.get().hash()  # 块体内容哈希
+body = self.body.get().hash()  # 纯正文的哈希
 block_id = bix.search(body)
 ```
 
-- 两个开关管的是**「一个取值后面挂几个 `block_id`」**：
+- **一个取值后面挂几个 `block_id`**，由 `only_one` 一个开关说了算：
 
   | 开关 | 含义 | 默认 |
   |---|---|---|
-  | `no_one` | 这条属性**不止一个**块有：一个取值后面是一**串** `block_id`（列表） | **默认开**，不写就是它 |
-  | `only_one` | 这条属性**全局唯一**：一个取值后面只许有一个 `block_id` | 默认关 |
+  | `only_one` | 这条属性**全局唯一**：一个取值后面只许有一个 `block_id` | 默认关（一个取值挂一串） |
 
-- 两个都关 = **悬空**：既不说可以有多个、也不说唯一，引擎**当场报错**——那是薛定谔的索引，
-  查出来是一个还是一串没人知道。
-- `BodyIndex` 没有这两个开关：它按**内容哈希**查，内容一样就是同一份。
+- 原来那对 `no_one` / `only_one` 砍掉了 `no_one`：一个布尔就没有「两个都关 = 悬空」的
+  薛定谔状态，意思更明确。默认不写就是多值，要唯一才写 `only_one=True`。
 
 - **索引的产物只有一样：`block_id`**。拿到 id 之后就没有难事了——地址在库里、
   内容在载体上，读回走 §2 的正常那条路。
@@ -154,7 +169,7 @@ block_id = bix.search(body)
 | `def init_body(self) -> None:` 却 `return body.type.set(list)` | 注解与返回不一致 | 拆成调用 ＋ `return body` |
 | `self.b.attr.set(...)` 调了两次（`init_attr` 内一次、`__init__` 里又一次） | `set` 到底是「装进去」还是「读回来」 | 见待定 3 |
 | `attr.lock("item")` | 与 `lock.all()` 长短不一，且没带参数 | 统一成 `attr.lock.item(名)` |
-| `on_one=` | 写反了 | `no_one=` |
+| `attr.index.set(name, no_one=…, only_one=…)` | 两个开关会打架（都关就悬空） | 砍掉 `no_one`，只留 `only_one`：一个布尔没有悬空态 |
 
 ### 11. 已经对的地方
 
@@ -170,3 +185,4 @@ block_id = bix.search(body)
 | 1 | 类型名怎么到读端手上、谁编解码 | §6 定了它的作用是推理；但读端是「写时随块带走」还是「读时由调用方声明」，以及编码器归引擎内置 / 调用方传入 / 注册表 | 待定 |
 | 2 | 入口对象与读写签名 | 草案没有 handle / session：谁写、写到哪个 hub、`write` / `read` 什么签名 | 待定 |
 | 3 | 索引块怎么组织 | 原生两种的内部结构（一层 KV 还是多级）、**根入口**在哪、`AttrIndex.search` 要不要前缀 / 范围；根入口很可能与路线 020 的「根入口」是同一个东西，该一起设计。自定义索引块引擎不管组织 | 待定 |
+| 4 | `BodyIndex` 那两个开关各是什么 | 「一个决定它是全局的，一个决定它是否（全局）的」照字面是同一件事，疑似笔误；是不是「索引范围（全局 / 局部）」与「唯一性（同正文是否必须同块）」 | 待定 |

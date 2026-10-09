@@ -35,7 +35,9 @@ class DemoData:
         self.b.body.set(self.body)
 
         self.attr.index.open()
-        self.attr.index.set("title", no_one=True)  # 默认就是 no_one：一个取值可以挂一串 block_id
+        self.attr.index.set("title")  # 点名 title；一个 set 都不调就是全量
+
+        self.body.index.open()  # 写入时留存一份纯正文，按正文哈希建索引
 
         self.attr.lock.all()
         self.attr.lock.item("title")
