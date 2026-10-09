@@ -28,15 +28,17 @@
 
 ### 2. 公开面 = 白名单
 
-- `src/oncasket/` 顶层**除 `py.typed` 外，不允许出现任何非 `_` 开头的条目**：
-  `__init__.py` / `__main__.py` / `__pycache__` 本就以下划线开头，所以规则只有一条。
-- [`src/oncasket/__init__.py`](../../src/oncasket/__init__.py) 是**唯一公开模块**：
-  公开名字在这里定义或重导出、逐个列进 `__all__`；**公开签名里不出现私有类型**
-  （否则 `oncasket._ops.write.Handle` 会漏进用户的注解与 repr）。
+- `src/oncasket/` 顶层**只允许两个非 `_` 开头的条目**：`py.typed` 与 `api/`。
+  `__init__.py` / `__main__.py` / `__pycache__` 本就以下划线开头，所以规则只有一条 + 白名单。
+- 公开面由两块组成：门面本体 [`__init__.py`](../../src/oncasket/__init__.py) 与拆出去的
+  [`api/`](../../src/oncasket/api/)。公开名字在各自的 `__all__` 里逐个列出；**公开签名里不出现
+  私有类型**（否则 `oncasket._ops.write.Handle` 会漏进用户的注解与 repr）。
+- `api/` 是**整体**拆分，不是「再散出几个公开模块」：门面长大后按域拆进 `api/`
+  （如 `api/block.py`），`api/__init__.py` 只做重导出。下游 import 的路径只有这一条，
+  冻结时也只记这一条——比在顶层长出 `oncasket/hub.py`、`oncasket/index.py` 强得多。
 - `__version__` 的单一来源是 `pyproject.toml`，运行时经 `importlib.metadata` 取，由冒烟测试校。
-- 逃逸口：门面膨胀到几百行时，**整体**拆成公开子包 `oncasket/api/`（白名单加一项），
-  而不是散落出一堆公开模块。
-- 守卫：[`tests/test_public_surface.py`](../../tests/test_public_surface.py)。
+- 守卫：[`tests/test_public_surface.py`](../../tests/test_public_surface.py)——白名单与两个
+  `__all__` 的自洽都查。
 
 ### 3. 域子包
 
@@ -44,9 +46,11 @@
 
 ```text
 src/oncasket/
-  __init__.py          # 唯一公开模块：__all__、门面、__version__
+  __init__.py          # 公开面之一：__all__、门面、__version__
   __main__.py          # python -m oncasket
   py.typed             # 类型标记（classifier 声明了 Typed 就得有它）
+  api/                 # 公开面之二：公开名字的落点（022 冻结；名字定稿前 __all__ 为空）
+    __init__.py
   _cli.py              # [project.scripts] oncasket = "oncasket._cli:main"
   _errors.py           # 异常类的唯一定义处（域模块只抛不定义）
   _hub/                # 005 / 026：容器与 hub
@@ -82,7 +86,7 @@ src/oncasket/
 | `_gc` | 上面全部 | 对账要判死依据 |
 | `_repair` | `_errors`、`_hub`、`_format`、`_index`、`_alloc` | 读盘、重扫、清孤儿槽、可能重建索引；**不依赖 `_ops`**（否则成环） |
 | `_ops` | 上面全部 | **唯一**跨域编排处，也是唯一调 `_repair` 的地方 |
-| `__init__` / `_cli` / `__main__` | `_errors`、`_ops` | 门面只做转发 |
+| `__init__` / `api` / `_cli` / `__main__` | `_errors`、`_ops` | 门面只做转发；`api` 与 `__init__` 同层，互不依赖 |
 
 - 只许单向：**同层或更低层**；`_format` 与 `_index` 并列，互不依赖。
 - 「提交 ①–⑦」这种横跨几域的流程一律进 `_ops`；域之间不许互相调用。
@@ -125,7 +129,6 @@ src/oncasket/
 
 | # | 待定项 | 卡在哪 | 谁拍 |
 |---|---|---|---|
-| 1 | 门面膨胀后是否拆 `oncasket/api/` | 看路线 022 落地后 `__init__.py` 的实际行数 | 待定 |
-| 2 | `_gc` 内部怎么分模块 | 016 / 017 尚无设计篇 | 待定 |
-| 3 | `format.txt` / `hub.txt` 的位偏移要不要也走生成物 | 现已按「手工写 + 测试对着 `.txt` 校」落地（`spec.py` ＋ `test_spec_matches_fact.py`）；换生成物要先把 DSL 解析器写出来，等格式稳定后再说 | 待定 |
-| 4 | 公开 API 的具体名字与签名 | 路线 022 | 待定 |
+| 1 | `_gc` 内部怎么分模块 | 016 / 017 尚无设计篇 | 待定 |
+| 2 | `format.txt` / `hub.txt` 的位偏移要不要也走生成物 | 现已按「手工写 + 测试对着 `.txt` 校」落地（`spec.py` ＋ `test_spec_matches_fact.py`）；换生成物要先把 DSL 解析器写出来，等格式稳定后再说 | 待定 |
+| 3 | 公开 API 的具体名字与签名 | 路线 022；`oncasket/api/` 已开、`__all__` 仍为空 | 待定 |

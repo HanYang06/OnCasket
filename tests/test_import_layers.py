@@ -15,6 +15,7 @@ PACKAGE = Path(oncasket.__file__).resolve().parent
 # 每个域只许依赖这些域。表必须覆盖代码里出现过的每个域，漏了由 violations 报出来。
 ALLOWED: dict[str, frozenset[str]] = {
     "": frozenset({"_errors", "_ops"}),  # 顶层：门面与命令行
+    "api": frozenset({"_errors", "_ops"}),  # 公开子包：门面整体拆出去的那一份
     "__main__": frozenset({"_cli"}),
     "_cli": frozenset({"_errors", "_ops"}),
     "_errors": frozenset(),

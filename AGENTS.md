@@ -102,10 +102,11 @@ uv run python scripts/stamp_version.py -c config/format.txt # 校验
 - 结构由门禁 G20 校验（只查结构、不查内容）：
   `uv run python scripts/check_changelog.py`。写法见[变更日志设计](docs/design/changelog.md)。
 
-### 3.7 包与目录 —— 公开面只有 `__init__.py`
+### 3.7 包与目录 —— 公开面只有 `__init__.py` 与 `api/`
 
-- `src/oncasket/` 顶层除 `py.typed` 外，**不许出现任何非 `_` 开头的条目**；
-  [`src/oncasket/__init__.py`](src/oncasket/__init__.py) 是唯一公开模块，公开名字逐个进 `__all__`，
+- `src/oncasket/` 顶层除 `py.typed` 与 `api/` 外，**不许出现任何非 `_` 开头的条目**；
+  [`src/oncasket/__init__.py`](src/oncasket/__init__.py) 与 [`src/oncasket/api/`](src/oncasket/api/)
+  是仅有的两块公开面（**整体**拆分，不是散点），公开名字逐个进所在模块的 `__all__`，
   公开签名里不出现私有类型。
 - 域子包与设计篇一一对应，**只许单向依赖**：`_hub` → `_format` / `_index` → `_alloc` → `_gc` → `_repair` / `_ops`；
   跨域流程（提交 ①–⑦ 这种）一律进 `_ops`，域之间不互相调用（`_ops` 是唯一调 `_repair` 的地方）。
@@ -156,7 +157,7 @@ scope 用英文小写（`format` / `engine` / `docs` / `ci`）。合并一律走
 LICENSE / NOTICE         # Apache-2.0 许可与项目归属
 THIRD_PARTY_NOTICES.md   # 运行时依赖的许可证清单（自动生成，勿手改）
 config/                  # 事实依据：机读配置（位级布局 .txt / schema .sql）
-src/oncasket/            # 引擎实现；__init__.py 是唯一公开面，其余顶层条目私有
+src/oncasket/            # 引擎实现；__init__.py 与 api/ 是仅有的公开面，其余顶层条目私有
 src/oncasket/_hub/       # 005/026 hub 布局、清单与锁
 src/oncasket/_format/    # 021 位级格式：spec / slot / block / park / scan（已实现）
 src/oncasket/_index/     # 006/008–013 索引库

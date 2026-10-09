@@ -13,6 +13,12 @@
 
 ### Added
 
+- **公开面加一块：新增公开子包 `oncasket.api`**（[路线图 031](../roadmap/1.x.md)）：
+  门面整体拆出去的那一项——[包与目录设计](../design/packages.md) §2 早写好的逃逸口，现在正式用掉。
+  顶层白名单从「只有 `py.typed`」改成 `py.typed` ＋ `api/`；两条守卫同步跟着改——公开面自查
+  `oncasket` 与 `oncasket.api` 两个 `__all__`，依赖分层表加上 `api`（与 `__init__` 同层、互不依赖）。
+  **名字还没定**：`__all__` 为空，具体名字与签名归路线 022。
+
 - **工程脚手架：门禁与许可**（门禁部分挂[路线图 027](../roadmap/1.x.md)；许可与版权部分无路线条目）：
   - 本地三层钩子（`pre-commit` / `commit-msg` / `pre-push`），工具一律走 `uv run`，
     清单见 [`docs/design/gate.txt`](../design/gate.txt)；
