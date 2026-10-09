@@ -54,6 +54,7 @@ uv run pre-commit run --all-files --hook-stage manual    # pip-audit，需联网
 | G12 提交信息 | 改成 `<type>(<scope>): <摘要>`，type 白名单见配置 |
 | G15 覆盖率 | 补测试；门槛在 `[tool.coverage.report]` 的 `fail_under` |
 | G15/G16/G18 | 看 job 日志；依赖漏洞走 `uv lock` 升级 |
+| G20 变更日志 | 按提示改结构；段位、切段与写法见[变更日志设计](changelog.md) |
 
 ### 4. 边界
 
@@ -62,6 +63,8 @@ uv run pre-commit run --all-files --hook-stage manual    # pip-audit，需联网
 - 本地钩子可以 `--no-verify` 绕；CI 绕不过。
 - `.github/dependabot.yml` 只负责提更新 PR，**不是门禁项**；它开的 PR 照样要过 CI。
 - G09 是**法律事实**，不是风格问题：依赖变了不重跑，清单就会悄悄过期，CI 必须红。
+- G20 只管结构不管内容：不查「这次改动写了日志没有」（对 `docs` / `ci` 类改动是误伤），
+  也不查 git tag（PR 阶段 tag 还不存在），后者的判定挂在发布流程上。
 
 ## 待定
 
@@ -69,5 +72,5 @@ uv run pre-commit run --all-files --hook-stage manual    # pip-audit，需联网
 |---|---|---|---|
 | 1 | 覆盖率门槛 90 的最终取值 | 等 `src/` 真正长大后的覆盖率基线 | 待定 |
 | 2 | GitHub 必需状态检查（分支保护） | 只能用仓库设置开、不能落文件；要先在 main 上跑绿一次 | 待定 |
-| 3 | 发布流程（tag → 构建 → 发布） | 相邻仓库有 release.yml，本仓尚未立设计 | 待定 |
+| 3 | 发布流程（tag → 构建 → 发布） | 相邻仓库有 release.yml，本仓尚未立设计；[变更日志设计](changelog.md) 的「版本文件 ↔ tag 机械对应」也挂在这条上 | 待定 |
 | 4 | Issue 模板与 release-drafter | 相邻仓库有 `.github/ISSUE_TEMPLATE/` 与 `release-drafter.yml`，本仓未建 | 待定 |

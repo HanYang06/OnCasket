@@ -1,4 +1,4 @@
-encoding: utf-8 version: 2e31dfdfc124097d2eb85a3b7ebf8d2ff0ba10d08350f477ec6bb119bc5dd64b
+encoding: utf-8 version: 9e1ae0d1ee9f2d36a36ee17ee0c3c6eab095d6c68ff91b255f16c31b51642a5f
 endian: little
 # 门禁清单：唯一事实源。一条 gate 一段，字段顺序固定，缺项留空不删
 # 层：提交（pre-commit）| 提交信息（commit-msg）| 推送（pre-push）| 手动（manual）| CI（远端）
@@ -79,7 +79,7 @@ gate G12
     impl            .pre-commit-config.yaml
 
 gate G13
-    name            lint 作业：ruff check / ruff format --check / codespell / 第三方许可清单 / 版本标记 / markdownlint / actionlint
+    name            lint 作业：ruff check / ruff format --check / codespell / 第三方许可清单 / 版本标记 / 变更日志结构 / markdownlint / actionlint
     layer           CI
     block           必需
     impl            .github/workflows/ci.yml
@@ -119,3 +119,9 @@ gate G19
     layer           CI
     block           报告
     impl            .github/workflows/scorecard.yml
+
+gate G20
+    name            变更日志结构：索引在位、段位与六类顺序、清单与链接引用自洽
+    layer           提交
+    block           必需
+    impl            .pre-commit-config.yaml, scripts/check_changelog.py, docs/CHANGELOG/

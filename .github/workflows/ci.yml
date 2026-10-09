@@ -1,5 +1,5 @@
 # ============================================================================
-# CI —— 提交/PR 的主质量门禁（门禁 G11–G17，口径见 docs/design/gate.txt）
+# CI —— 提交/PR 的主质量门禁（G13–G16；G17–G19 见 codeql / dependency-review / scorecard，口径见 docs/design/gate.txt）
 #
 # 约定：
 #   1) 所有 action 都固定到 40 位 commit SHA（行尾注释写对应版本）。
@@ -82,6 +82,10 @@ jobs:
       # 结构文件的内容指纹：漏盖即红。pre-commit 在本地拦一道，CI 再拦一道。
       - name: Structure file version stamps
         run: uv run python scripts/stamp_version.py -c config/*.txt docs/design/*.txt
+
+      # 变更日志结构：一版一文件、六类顺序、清单与链接引用自洽（G20），与本地那道同源。
+      - name: Changelog structure
+        run: uv run python scripts/check_changelog.py
 
       # actionlint 校验 .github/workflows 自身的语法/表达式错误。
       # 本机没有 Go 工具链，所以它只在这里跑。
