@@ -17,3 +17,4 @@ class Repair(enum.StrEnum):
     R001 = "R001"
     R002 = "R002"
     R003 = "R003"
+    R004 = "R004"

@@ -1,4 +1,4 @@
-encoding: utf-8 version: 9df2eb87acfd2bfb82b7944cedfd4d0f680fcb390fd032715c2e31f5e5b670ea;
+encoding: utf-8 version: 91f46ab87b2785e9ca7d554e6ca9bee7a974d7642f091438acab5cb3ce0b6475;
 endian: little;
 # 修复清单：唯一事实源。一条修复一段，字段顺序固定，缺项留空不删
 # 编号：R ＋ 三位数字；只增不减、号不复用、全仓连号。日志里只出编号，不出症状
@@ -23,3 +23,9 @@ repair R003
     trigger         内部异常
     recheck         重建后每一条索引行都能在载体上找到，且逐槽 check 与全局哈希都验过
     impl            src/oncasket/_index/rebuild.py（未建）, src/oncasket/_index/store.py（未建）
+
+repair R004
+    name            索引块补/清：按载体补齐缺的索引条目，清掉指向不存在块的悬空条目
+    trigger         内部异常
+    recheck         补/清之后：索引块里每条都指得着一个载体上的块，载体上每个开过索引的块都回了索引
+    impl            src/oncasket/_index/rebuild.py（未建）, src/oncasket/_format/scan.py（盲扫已实现）
