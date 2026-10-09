@@ -1,0 +1,25 @@
+encoding: utf-8 version: 9df2eb87acfd2bfb82b7944cedfd4d0f680fcb390fd032715c2e31f5e5b670ea;
+endian: little;
+# 修复清单：唯一事实源。一条修复一段，字段顺序固定，缺项留空不删
+# 编号：R ＋ 三位数字；只增不减、号不复用、全仓连号。日志里只出编号，不出症状
+# 触发：内部异常（异常报出来后跟修复）| 自动（不由异常触发，轮次到了就做）
+# 复检：修完拿什么验；复检不过就不算修好，换下一条
+# 落点：实现文件，多个用逗号分隔；实现照本清单，不照说明篇
+
+repair R001
+    name            清孤儿槽：链首 check 不过的槽、没有链首的散槽，状态清成 empty
+    trigger         内部异常
+    recheck         再扫一遍：这些槽不再被认作孤儿
+    impl            src/oncasket/_format/scan.py（清的动作已实现，接入未做）
+
+repair R002
+    name            按盲扫重算水线与六个计数
+    trigger         内部异常
+    recheck         计数自洽，且扫出来的块与重算结果对得上
+    impl            src/oncasket/_format/scan.py, src/oncasket/_format/park.py（重算动作未实现）
+
+repair R003
+    name            按载体重建索引库
+    trigger         内部异常
+    recheck         重建后每一条索引行都能在载体上找到，且逐槽 check 与全局哈希都验过
+    impl            src/oncasket/_index/rebuild.py（未建）, src/oncasket/_index/store.py（未建）
