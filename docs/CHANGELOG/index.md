@@ -49,6 +49,11 @@
 
 ### Changed
 
+- **Python 支持范围放宽到 3.11–3.14，开发默认仍是 3.14**（[路线图 024](../roadmap/1.x.md)）：
+  `requires-python` 从 `>=3.14,<3.15` 放宽到 `>=3.11,<3.15`，classifiers 补齐 3.11 / 3.12 / 3.13。
+  放宽的是**可安装范围**，不是开发口径：`.python-version`、CI 与 ruff / mypy 的目标都还是 3.14；
+  3.15 不支持。本项目尚未发布过任何版本，无迁移成本。
+
 - **自述属性是属性字典（KV），逐段数「条数」而不是「位长」**（[路线图 021](../roadmap/1.x.md)）：
   `block_self_attr` 段内是 `block_id` ＋ 一条条属性，字段 `block_self_attr_len` 随之改名
   `block_self_attr_num`（**本段条数**，不再是位长）；一条条目 = `<名长:int32><名:utf-8><值长:int32><值:字节>`，
