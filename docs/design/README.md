@@ -14,3 +14,6 @@
 | 索引库（数据库）：逻辑块 ID ↔ 物理位置 | [config/index_db.sql](../../config/index_db.sql) | [index_db.md](index_db.md) | 006, 008-013 |
 | hub 布局：目录与多 hub | [config/hub.txt](../../config/hub.txt) | [hub.md](hub.md) | 005, 026 |
 | 门禁：本地钩子 / CI | [gate.txt](gate.txt) | [gate.md](gate.md) | 027 |
+| 变更日志：一版一文件与结构门禁 | 无机读事实依据（结构契约由 [scripts/check_changelog.py](../../scripts/check_changelog.py) 钉死） | [changelog.md](changelog.md) | 030 |
+| 包与目录：公开面 / 域子包 / 依赖分层 | 结构契约由 [tests/test_public_surface.py](../../tests/test_public_surface.py)、[tests/test_import_layers.py](../../tests/test_import_layers.py) 钉死 | [packages.md](packages.md) | 031 |
+| 修复：先修再判坏与策略库 | 策略清单尚无机读文件（见该篇待定） | [repair.md](repair.md) | 032 |

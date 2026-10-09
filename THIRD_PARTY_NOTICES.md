@@ -21,37 +21,21 @@ uv run python scripts/gen_third_party_notices.py --check
 
 许可证列优先取 PEP 639 的 `License-Expression`（SPDX 表达式），其次为 `Classifier: License ::` 分类器，再次为旧式 `License` 字段；都没有时记为 `UNKNOWN`。许可证全文随各分发一并提供，路径见下方逐包明细（相对 `site-packages`），也可在对应的上游页面获取。
 
-当前运行时依赖数量：**12**。
+当前运行时依赖数量：**7**。
 
 ## 汇总
 
 | 包 | 版本 | 许可证 | 许可证来源 | 环境标记 |
 |---|---|---|---|---|
-| hatchling | 1.32.4 | MIT | License-Expression | — |
 | markdown-it-py | 4.2.0 | OSI Approved :: MIT License | Classifier: License :: | — |
 | mdurl | 0.1.2 | OSI Approved :: MIT License | Classifier: License :: | — |
-| OnConf | 2.1.0a1 | Apache-2.0 | License-Expression | — |
-| packaging | 26.3 | Apache-2.0 OR BSD-2-Clause | License-Expression | — |
-| pathspec | 1.1.1 | OSI Approved :: Mozilla Public License 2.0 (MPL 2.0) | Classifier: License :: | — |
-| pluggy | 1.6.0 | OSI Approved :: MIT License | Classifier: License :: | — |
+| OnConf | 2.1.0 | Apache-2.0 | License-Expression | — |
 | Pygments | 2.21.0 | BSD-2-Clause | License-Expression | — |
 | PyYAML | 6.0.3 | OSI Approved :: MIT License | Classifier: License :: | — |
 | rich | 15.0.0 | OSI Approved :: MIT License | Classifier: License :: | — |
-| tomlkit | 0.15.1 | OSI Approved :: MIT License | Classifier: License :: | — |
-| trove-classifiers | 2026.9.21.13 | OSI Approved :: Apache Software License | Classifier: License :: | — |
+| xxhash | 4.0.1 | BSD-2-Clause | License | — |
 
 ## 逐包明细
-
-### hatchling 1.32.4
-
-- 元数据名称：`hatchling`
-- Metadata-Version：`2.5`
-- 许可证：MIT（来源：License-Expression）
-- 环境标记：无（所有平台都装）
-- Home-page：元数据未声明
-- Project-URL：Homepage <https://hatch.pypa.io/latest/>；Sponsor <https://github.com/sponsors/ofek>；History <https://hatch.pypa.io/dev/history/hatchling/>；Tracker <https://github.com/pypa/hatch/issues>；Source <https://github.com/pypa/hatch/tree/master/backend>
-- 许可证全文（随分发提供，路径相对 `site-packages`）：`hatchling-1.32.4.dist-info/licenses/LICENSE.txt`
-- 上游页面：<https://pypi.org/project/hatchling/1.32.4/>
 
 ### markdown-it-py 4.2.0
 
@@ -75,7 +59,7 @@ uv run python scripts/gen_third_party_notices.py --check
 - 许可证全文（随分发提供，路径相对 `site-packages`）：`mdurl-0.1.2.dist-info/LICENSE`
 - 上游页面：<https://pypi.org/project/mdurl/0.1.2/>
 
-### OnConf 2.1.0a1
+### OnConf 2.1.0
 
 - 元数据名称：`OnConf`
 - Metadata-Version：`2.4`
@@ -83,41 +67,8 @@ uv run python scripts/gen_third_party_notices.py --check
 - 环境标记：无（所有平台都装）
 - Home-page：元数据未声明
 - Project-URL：Homepage <https://github.com/HanYang06/OnConf>；Documentation <https://hanyang06.github.io/OnConf/>；Repository <https://github.com/HanYang06/OnConf>；Issues <https://github.com/HanYang06/OnConf/issues>；Discussions <https://github.com/HanYang06/OnConf/discussions>；Changelog <https://github.com/HanYang06/OnConf/blob/main/CHANGELOG.md>；Security <https://github.com/HanYang06/OnConf/security/policy>
-- 许可证全文（随分发提供，路径相对 `site-packages`）：`onconf-2.1.0a1.dist-info/licenses/LICENSE`、`onconf-2.1.0a1.dist-info/licenses/NOTICE`
-- 上游页面：<https://pypi.org/project/onconf/2.1.0a1/>
-
-### packaging 26.3
-
-- 元数据名称：`packaging`
-- Metadata-Version：`2.4`
-- 许可证：Apache-2.0 OR BSD-2-Clause（来源：License-Expression）
-- 环境标记：无（所有平台都装）
-- Home-page：元数据未声明
-- Project-URL：Documentation <https://packaging.pypa.io/>；Source <https://github.com/pypa/packaging>
-- 许可证全文（随分发提供，路径相对 `site-packages`）：`packaging-26.3.dist-info/licenses/LICENSE`、`packaging-26.3.dist-info/licenses/LICENSE.APACHE`、`packaging-26.3.dist-info/licenses/LICENSE.BSD`
-- 上游页面：<https://pypi.org/project/packaging/26.3/>
-
-### pathspec 1.1.1
-
-- 元数据名称：`pathspec`
-- Metadata-Version：`2.4`
-- 许可证：OSI Approved :: Mozilla Public License 2.0 (MPL 2.0)（来源：Classifier: License ::）
-- 环境标记：无（所有平台都装）
-- Home-page：元数据未声明
-- Project-URL：Change Log <https://python-path-specification.readthedocs.io/en/latest/changes.html>；Documentation <https://python-path-specification.readthedocs.io/en/latest/index.html>；Issue Tracker <https://github.com/cpburnz/python-pathspec/issues>；Source Code <https://github.com/cpburnz/python-pathspec>
-- 许可证全文（随分发提供，路径相对 `site-packages`）：`pathspec-1.1.1.dist-info/licenses/LICENSE`
-- 上游页面：<https://pypi.org/project/pathspec/1.1.1/>
-
-### pluggy 1.6.0
-
-- 元数据名称：`pluggy`
-- Metadata-Version：`2.4`
-- 许可证：OSI Approved :: MIT License（来源：Classifier: License ::）
-- 环境标记：无（所有平台都装）
-- Home-page：元数据未声明
-- Project-URL：元数据未声明
-- 许可证全文（随分发提供，路径相对 `site-packages`）：`pluggy-1.6.0.dist-info/licenses/LICENSE`
-- 上游页面：<https://pypi.org/project/pluggy/1.6.0/>
+- 许可证全文（随分发提供，路径相对 `site-packages`）：`onconf-2.1.0.dist-info/licenses/LICENSE`、`onconf-2.1.0.dist-info/licenses/NOTICE`
+- 上游页面：<https://pypi.org/project/onconf/2.1.0/>
 
 ### Pygments 2.21.0
 
@@ -152,24 +103,13 @@ uv run python scripts/gen_third_party_notices.py --check
 - 许可证全文（随分发提供，路径相对 `site-packages`）：`rich-15.0.0.dist-info/licenses/LICENSE`
 - 上游页面：<https://pypi.org/project/rich/15.0.0/>
 
-### tomlkit 0.15.1
+### xxhash 4.0.1
 
-- 元数据名称：`tomlkit`
+- 元数据名称：`xxhash`
 - Metadata-Version：`2.4`
-- 许可证：OSI Approved :: MIT License（来源：Classifier: License ::）
+- 许可证：BSD-2-Clause（来源：License）
 - 环境标记：无（所有平台都装）
-- Home-page：元数据未声明
-- Project-URL：Homepage <https://github.com/python-poetry/tomlkit>；Repository <https://github.com/python-poetry/tomlkit>
-- 许可证全文（随分发提供，路径相对 `site-packages`）：`tomlkit-0.15.1.dist-info/licenses/LICENSE`
-- 上游页面：<https://pypi.org/project/tomlkit/0.15.1/>
-
-### trove-classifiers 2026.9.21.13
-
-- 元数据名称：`trove-classifiers`
-- Metadata-Version：`2.4`
-- 许可证：OSI Approved :: Apache Software License（来源：Classifier: License ::）
-- 环境标记：无（所有平台都装）
-- Home-page：<https://github.com/pypa/trove-classifiers>
+- Home-page：<https://github.com/ifduyue/python-xxhash>
 - Project-URL：元数据未声明
-- 许可证全文（随分发提供，路径相对 `site-packages`）：`trove_classifiers-2026.9.21.13.dist-info/licenses/LICENSE`
-- 上游页面：<https://pypi.org/project/trove-classifiers/2026.9.21.13/>
+- 许可证全文（随分发提供，路径相对 `site-packages`）：`xxhash-4.0.1.dist-info/licenses/LICENSE`
+- 上游页面：<https://pypi.org/project/xxhash/4.0.1/>

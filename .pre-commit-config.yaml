@@ -1,5 +1,5 @@
 # ============================================================================
-# pre-commit —— 提交前把关（门禁 G01–G11，口径见 docs/design/gate.txt / gate.md）
+# pre-commit —— 提交前把关（门禁 G01–G12、G20，口径见 docs/design/gate.txt / gate.md）
 #
 # 设计取舍（为什么是现在这个样子）：
 #
@@ -153,6 +153,15 @@ repos:
         entry: uv run python scripts/gen_third_party_notices.py --check
         language: system
         files: ^(pyproject\.toml|uv\.lock|THIRD_PARTY_NOTICES\.md)$
+        pass_filenames: false
+
+      # 变更日志的结构契约（G20）：一版一文件、六类顺序、清单与链接引用自洽。
+      # 只校验结构不校验内容 —— 不因为 docs / ci 类改动没写日志而变红。
+      - id: changelog
+        name: changelog（变更日志结构）
+        entry: uv run python scripts/check_changelog.py
+        language: system
+        files: ^docs/CHANGELOG/.*\.md$
         pass_filenames: false
 
       - id: pytest

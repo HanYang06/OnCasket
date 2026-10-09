@@ -29,8 +29,8 @@ classifiers = [
     "Typing :: Typed",
 ]
 dependencies = [
-    "hatchling>=1.32.4",
-    "onconf>=2.1.0a1",
+    "onconf>=2.1.0",
+    "xxhash>=4.0.1",
 ]
 
 [dependency-groups]
@@ -47,13 +47,13 @@ dev = [
 ]
 
 [project.scripts]
-oncasket = "oncasket:main"
+oncasket = "oncasket._cli:main"
 
 [project.urls]
 Homepage = "https://github.com/HanYang06/OnCasket"
 Repository = "https://github.com/HanYang06/OnCasket"
 Issues = "https://github.com/HanYang06/OnCasket/issues"
-Changelog = "https://github.com/HanYang06/OnCasket/blob/main/CHANGELOG.md"
+Changelog = "https://github.com/HanYang06/OnCasket/blob/main/docs/CHANGELOG/index.md"
 Security = "https://github.com/HanYang06/OnCasket/security/advisories/new"
 
 [build-system]
@@ -166,7 +166,7 @@ ignore = [
     "PT011",                  # pytest.raises 不强制 match
 ]
 "scripts/**" = ["T201", "INP001"]  # 脚本就是往 stdout 写
-"src/oncasket/__init__.py" = ["T201"]  # CLI 入口往 stdout 写，是本分
+"src/oncasket/_cli.py" = ["T201"]  # CLI 入口往 stdout 写，是本分
 
 [tool.ruff.lint.flake8-copyright]
 # 源码必须有 SPDX 许可头（Apache-2.0）
@@ -202,6 +202,11 @@ skip-magic-trailing-comma = false
 # ============================================================================
 [tool.mypy]
 python_version = "3.14"
+# 模块名的两级根：`src/` 下是 oncasket，仓库根下是 tests/。
+# 少了这两行，mypy 会把 tests/ 里的文件当**顶层模块**（test_park，而不是 tests.format.test_park），
+# 既匹配不到 tests.* 的 override，不同目录下的同名测试文件也会撞 Duplicate module。
+mypy_path = ["src", "."]
+explicit_package_bases = true
 strict = true
 files = ["src", "tests"]
 warn_unreachable = true
@@ -215,12 +220,12 @@ disallow_any_unimported = true
 disallow_any_explicit = false
 
 # 测试可以宽松：pytest fixture 的注入形态与严格注解天然冲突。
-# tests/ 下没有 __init__.py（pytest --import-mode=importlib），mypy 把它们当
-# **顶层模块**（test_smoke，而不是 tests.test_smoke），所以 "tests.*" 匹配不到，
-# 只能逐个列。加测试文件时记得补这里。
+# tests/ 下没有 __init__.py（pytest --import-mode=importlib），但配了 mypy_path +
+# explicit_package_bases，mypy 把它们当**命名空间包**：模块名形如 tests.<目录>.<文件名>，
+# 所以一条通配就够 —— 加测试文件不必再改这里。
 [[tool.mypy.overrides]]
 module = [
-    "test_smoke",
+    "tests.*",
 ]
 disallow_untyped_defs = false
 disallow_incomplete_defs = false
