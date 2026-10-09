@@ -7,7 +7,8 @@
 #      固定 SHA 后，升级只能由本仓库显式改这一行来完成。
 #   2) 权限最小化：顶层只给 contents: read。
 #   3) 每个 job 都有 timeout-minutes：防止 runner 上偶发卡死把并发额度占满。
-#   4) 工具版本与本地一致：uv 固定 0.12.22，Python 固定 3.14（见 .python-version）。
+#   4) 工具版本与本地一致：uv 固定 0.12.22；开发默认 Python 3.14（见 .python-version），
+#      测试矩阵另加最低支持版本 3.11 兜底。
 # ============================================================================
 name: CI
 
@@ -129,10 +130,10 @@ jobs:
         run: uv run mypy
 
   # --------------------------------------------------------------------------
-  # 测试：三平台 × Python 3.14，上报覆盖率
+  # 测试：三平台 × Python 3.11（最低支持）/ 3.14（开发默认），上报覆盖率
   # --------------------------------------------------------------------------
   test:
-    name: Test (${{ matrix.os }})
+    name: Test (${{ matrix.os }}, ${{ matrix.python-version }})
     runs-on: ${{ matrix.os }}
     timeout-minutes: 30
     strategy:
@@ -141,7 +142,8 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
-        python-version: ["3.14"]
+        # 下限那一个不是凑数：requires-python 写着 >=3.11，没人跑就等于没支持。
+        python-version: ["3.11", "3.14"]
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -169,8 +171,8 @@ jobs:
       - name: Upload coverage report
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          # artifact 名带上 os，三平台各自留一份互不覆盖。
-          name: coverage-${{ matrix.os }}
+          # artifact 名带上 os 与 Python 版本，六个作业各自留一份互不覆盖。
+          name: coverage-${{ matrix.os }}-${{ matrix.python-version }}
           path: coverage.xml
           # 覆盖率文件本该必然存在；缺失说明测试步骤异常，应当显式报错而不是静默 warn。
           if-no-files-found: error

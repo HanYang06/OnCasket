@@ -146,7 +146,7 @@ class IndexStore:
         connection = _connect(path)
         try:
             _guard(connection)
-        except OnCasketError, sqlite3.Error:
+        except (OnCasketError, sqlite3.Error):
             connection.close()
             raise
         return cls(path, connection)

@@ -1,4 +1,4 @@
-encoding: utf-8 version: b477625812ab15e4fa8b93d7f7fe6fc939c885bc7cce85711b9c7ecaac52b6f6
+encoding: utf-8 version: 0a4f48171619700b1608f670752be2df4d8451ccd83d2ad08e5bda17c31ce33c
 endian: little
 # 门禁清单：唯一事实源。一条 gate 一段，字段顺序固定，缺项留空不删
 # 层：提交（pre-commit）| 提交信息（commit-msg）| 推送（pre-push）| 手动（manual）| CI（远端）
@@ -91,7 +91,7 @@ gate G14
     impl            .github/workflows/ci.yml
 
 gate G15
-    name            test 作业：pytest × ubuntu / windows / macos + 覆盖率门槛 + 覆盖率产物
+    name            test 作业：pytest × ubuntu / windows / macos × 3.11 / 3.14 + 覆盖率门槛 + 覆盖率产物
     layer           CI
     block           必需
     impl            .github/workflows/ci.yml, pyproject.toml

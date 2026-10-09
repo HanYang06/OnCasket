@@ -80,7 +80,9 @@ explicit = true
 # ============================================================================
 [tool.ruff]
 line-length = 100
-target-version = "py314"
+# 目标取**最低支持版本**（requires-python 的下限），不是开发解释器：声明支持 3.11 就得
+# 让 lint 按 3.11 卡语法，否则一句 3.12+ 语法就能把「支持 3.11」变成空话。
+target-version = "py311"
 src = ["src", "tests", "scripts"]
 extend-exclude = [".venv"]
 output-format = "concise"
@@ -204,7 +206,8 @@ skip-magic-trailing-comma = false
 # mypy —— 严格模式
 # ============================================================================
 [tool.mypy]
-python_version = "3.14"
+# 同 ruff 的 target-version：按最低支持版本卡，开发解释器仍是 3.14（.python-version）。
+python_version = "3.11"
 # 模块名的两级根：`src/` 下是 oncasket，仓库根下是 tests/。
 # 少了这两行，mypy 会把 tests/ 里的文件当**顶层模块**（test_park，而不是 tests.format.test_park），
 # 既匹配不到 tests.* 的 override，不同目录下的同名测试文件也会撞 Duplicate module。
