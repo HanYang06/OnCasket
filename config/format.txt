@@ -1,0 +1,66 @@
+encoding: utf-8; version: b967da9c3f9ce4d0a75b85086b5804d7cf638fc922a8025d661f9cf3565e6152;
+endian: little;
+Offset-unit: bit;
+offset-base: parent;
+extent: region=start:length; field=start:end;
+origin: header=slot-start;
+divider: ruler=section-kind; arrows=form-break;
+# 行式 DSL：<名称> <类型> <偏移|取值>；缩进 4 空格/级；子区偏移相对其父区；三列按显示宽度对齐
+
+|-------------------------------|----------------------|----------------|
+    # pack_file 格式
+format_pack                      type:file
+    header                       none                   0:1024
+        version                  hash256                0:256
+        slot_size                int32                  256:288
+        slot_num                 int32                  288:320
+        slot_live                int32                  320:352
+        slot_used                int32                  352:384
+        slot_dead                int32                  384:416
+        slot_empty               int32                  416:448
+        none                     none                   448:1024
+    slot                         header_slot|data_slot  1024:(slot_size*slot_num)
+
+|-------------------------------|----------------------|----------------|
+    # 两种形式slot格式适配不同需求
+    # header_slot 头槽，存放属性\元\简易信息
+slot                            header_slot             header:slot_size
+    header_slot_state           slot_state              header:32
+    slot_write_check            xxh128                  32:160
+    header_slot_num             int32                   160:192
+    header_slot_end             int32                   192:224
+    data_slot_num               int32                   224:256
+    data_slot_end               int32                   256:288
+    block_body_size             int32                   288:320
+    block_self_attr_len         int32                   320:352
+    block_self_attr             none                    352:slot_size-352
+        block_id                uuid4                   0:128
+        none                    none                    128:slot_size-480
+
+>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+    # 溢出的header_slot
+slot                            header_slot             header:slot_size
+    header_slot_state           slot_state              header:32
+    slot_write_check            xxh128                  32:160
+    block_self_attr_len         int32                   160:192
+    block_self_attr             none                    192:slot_size-192
+        block_id                uuid4                   0:128
+        none                    none                    128:slot_size-320
+
+>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+    # 数据槽，存放主要数据(溢出与现行结构一致)
+slot                            data_slot               header:slot_size
+    data_slot_state             slot_state              header:32
+    slot_write_check            xxh128                  32:160
+    data_slot_body              none                    160:slot_size-160
+
+|-------------------------------|-------------------|----------------|
+
+slot_state                      enumerate(magic32)      unit:4byte
+    header_start                magic32                 const:0x9E3779B1
+    header_mid                  magic32                 const:0x85EBCA77
+    data_mid                    magic32                 const:0x589965CC
+    data_end                    magic32                 const:0xC2B2AE3D
+    empty                       magic32                 const:0x00000000

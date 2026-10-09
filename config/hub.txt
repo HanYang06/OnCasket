@@ -1,0 +1,30 @@
+encoding: utf-8 version: 876b9b844a67f3ffe300ccc9a1ba8683a9d9c31a09c467d969490f2e34d6ea09
+endian: little
+# 目录 DSL：段头 root_dir:<名> / sub_dir:<名>；段内缩进表归属；行末带 / 为目录；copy:<源段>::<路径> 为整段复制
+# <hub>=hub 名（可重复）；park 名 = hash(唯一名) 十六进制小写前 16 位，其第 1-2 / 3-4 位做两级分片
+
+root_dir:.oncasket
+        <hub>/
+            pack/
+            index/
+            gc/
+        hub.conf.json
+        hub.lock.json
+
+sub_dir:pack
+    <h0:2>/
+        <h2:4>/
+            <h0:16>.oncat
+
+sub_dir:index
+    index.db
+    judge.db
+
+sub_dir:gc
+    cache/
+    report/
+        <yyyy-mm-dd-nn>.json
+    lock.json
+    gc_<yyyy-mm-dd-nn>_<hub>
+        copy:sub_dir::pack/*
+        copy:sub_dir::index/*

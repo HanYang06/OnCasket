@@ -15,14 +15,16 @@
 | 设计 | `docs/design/` | 怎么做（口径）、为什么 | 本页 |
 | 代码 | `src/` | 实现 | — |
 
-## 2. 设计篇是两份文件
+设计层的**事实依据**（机读的配置型文件）放 `config/`，说明篇放 `docs/design/`，见第 2 节。
 
-一个设计域 = 同名、同目录的两份：
+## 2. 设计篇 = 说明篇 + 事实依据
 
-- **事实依据**：结构文件 `<域名>.txt`（如 `format.txt`）。行式 DSL 写死字段、位偏移、取值，机器可读。
-  实现照它，不照说明篇。
-- **说明篇**：`<同名>.md`（如 `format.md`）。按节讲清这份结构怎么用、顺序是什么。
+- **事实依据**：机读的配置型文件，放 `config/`，形式按内容定——位级布局用行式 DSL 的
+  `<域名>.txt`（如 `format.txt`），schema 用可直接执行的 `<域名>.sql`（如 `index_db.sql`）。
+  写死字段、取值与结构；实现照它，不照说明篇。
+- **说明篇**：`docs/design/<域名>.md`（如 `format.md`）。按节讲清这份结构怎么用、顺序是什么。
   **只解释事实依据，不另立字段、不改取值**；两者冲突，以事实依据为准。
+- 现行例外：门禁清单 [`docs/design/gate.txt`](design/gate.txt) 仍在 `docs/design/`——整篇待改，改完一并归位。
 
 ## 3. 写法
 
@@ -40,7 +42,7 @@
 
 ## 5. 版本标记
 
-带结构的设计文件，首行固定两行：
+带结构的 `.txt` 事实依据（放 `config/`）首行固定两行：
 
 ```text
 encoding: utf-8 version: <sha256>
@@ -50,9 +52,12 @@ endian: little
 `version` 是**内容指纹**，不是数据版本（本引擎不做数据版本管理）。改完必须重盖，漏盖即门禁红：
 
 ```bash
-python scripts/stamp_version.py docs/design/format.txt
-python scripts/stamp_version.py docs/design/format.txt -c   # 门禁：不符退出 1
+python scripts/stamp_version.py config/format.txt
+python scripts/stamp_version.py config/format.txt -c   # 门禁：不符退出 1
 ```
+
+- 这套标记只管 `.txt` 位级布局；`.sql` 类事实依据不走它，完整性由 schema 指纹负责
+  （见[索引库 §011](design/index_db.md#r011)）。
 
 ## 6. 关联
 

@@ -12,8 +12,8 @@
 
 - Python `>=3.14`，依赖与虚拟环境一律用 `uv`，构建后端 `uv_build`。
 - 权威顺序 **路线图 > 设计 > 代码**：路线图管「做什么、落在哪个版本」
-  （[0.x](docs/roadmap/0.x.md)），设计管「口径、为什么」（[docs/design](docs/design/)），
-  代码管实现。三层不一致时改下层；推翻上层只有两种动作：新增条目，或撤回条目的
+  （[1.x](docs/roadmap/1.x.md)），设计管「口径、为什么」（[docs/design](docs/design/)，
+  事实依据在 [config/](config/)），代码管实现。三层不一致时改下层；推翻上层只有两种动作：新增条目，或撤回条目的
   `决策状态`（`已定` → `待裁` / `已废弃`）。条目只增不减。
 
 ## 2. 命令
@@ -31,7 +31,7 @@ uv run codespell                              # 拼写
 uv run bandit -c pyproject.toml -r src        # 安全静态扫描
 uv run zizmor .github/workflows               # Actions 审计
 uv run pip-audit                              # 依赖漏洞（需联网）
-uv run python scripts/stamp_version.py -c docs/design/*.txt   # 版本标记校验
+uv run python scripts/stamp_version.py -c config/*.txt docs/design/*.txt   # 版本标记校验
 ```
 
 **不要**用 `pip install`，也不要绕过 `uv run` 去调 `.venv/Scripts/*.exe`
@@ -72,12 +72,12 @@ uv run python scripts/stamp_version.py -c docs/design/*.txt   # 版本标记校�
 
 ### 3.4 结构文件的版本标记 —— 漏盖即门禁红
 
-带结构的设计文件（`docs/design/<域名>.txt`）首行固定两行：`encoding: … version: <sha256>`
+带结构的 `.txt` 事实依据（`config/<域名>.txt`）首行固定两行：`encoding: … version: <sha256>`
 与 `endian: little`。`version` 是内容指纹，改完必须重盖：
 
 ```bash
-uv run python scripts/stamp_version.py docs/design/format.txt   # 写入
-uv run python scripts/stamp_version.py -c docs/design/format.txt # 校验
+uv run python scripts/stamp_version.py config/format.txt   # 写入
+uv run python scripts/stamp_version.py -c config/format.txt # 校验
 ```
 
 ### 3.5 文档
@@ -112,10 +112,11 @@ scope 用英文小写（`format` / `engine` / `docs` / `ci`）。合并一律走
 ```text
 LICENSE / NOTICE         # Apache-2.0 许可与项目归属
 THIRD_PARTY_NOTICES.md   # 运行时依赖的许可证清单（自动生成，勿手改）
+config/                  # 事实依据：机读配置（位级布局 .txt / schema .sql）
 src/oncasket/            # 引擎实现（CLI 入口 main）
 src/oncasket/format/     # 格式域：f_pack / f_block / f_slot（占位，未实现）
 scripts/stamp_version.py # 结构文件版本标记（门禁 G04）
 tests/                   # 门禁测试（没有 __init__.py）
 docs/roadmap/            # 路线图（权威）
-docs/design/             # 设计篇（口径 + 事实依据）
+docs/design/             # 设计篇（口径 + 说明篇）
 ```
