@@ -84,7 +84,7 @@ line-length = 100
 # 目标取**最低支持版本**（requires-python 的下限），不是开发解释器：声明支持 3.11 就得
 # 让 lint 按 3.11 卡语法，否则一句 3.12+ 语法就能把「支持 3.11」变成空话。
 target-version = "py311"
-src = ["src", "tests", "scripts"]
+src = ["src", "tests", "scripts", "examples"]
 extend-exclude = [".venv"]
 output-format = "concise"
 preview = false
@@ -172,6 +172,7 @@ ignore = [
     "PT011",                  # pytest.raises 不强制 match
 ]
 "scripts/**" = ["T201", "INP001"]  # 脚本就是往 stdout 写
+"examples/**" = ["INP001"]  # 例子不是包，不该为 lint 专门加一个 __init__.py
 "src/oncasket/_cli.py" = ["T201"]  # CLI 入口往 stdout 写，是本分
 
 [tool.ruff.lint.flake8-copyright]
