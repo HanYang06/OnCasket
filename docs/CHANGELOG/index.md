@@ -38,6 +38,14 @@
   `scan` 五个模块实现位偏移、三种槽形态的编解码、槽内 `check`、块链装配与解析，
   以及不读索引库的逐槽认块；事实依据 [`config/format.txt`](../../config/format.txt) 由
   `tests/format/` 逐项对着校。这是本引擎第一份落盘格式实现，此前只有占位模块。
+- **索引库落地：建库生成物、schema 指纹与打开时守卫**（[路线图 008](../roadmap/1.x.md)）：
+  [`config/index_db.sql`](../../config/index_db.sql) 是表结构的唯一写处，
+  `scripts/gen_index_schema.py` 从它生成 [`schema_gen.py`](../../src/oncasket/_index/schema_gen.py)
+  （建库 DDL ＋ 基准指纹，**增量追加**、不删旧版），门禁 G21 用 `--check` 比对；
+  [`fingerprint.py`](../../src/oncasket/_index/fingerprint.py) 按表 / 索引 / 视图 / 触发器的结构算
+  带盐 sha256，[`store.py`](../../src/oncasket/_index/store.py) 每次连接都比对——指纹不在本引擎声明的
+  集合里就**拒绝连接并抛异常**，不降级、不静默重建；运行时 SQLite 低于 3.37（`STRICT` 与所需
+  pragma 的下限）同样拒开。这是**索引库 schema 指纹**的首次落地。
 
 ### Changed
 
