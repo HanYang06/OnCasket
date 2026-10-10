@@ -51,8 +51,9 @@ src/oncasket/
   __init__.py          # 公开面之一：__all__、门面、__version__
   __main__.py          # python -m oncasket
   py.typed             # 类型标记（classifier 声明了 Typed 就得有它）
-  api/                 # 公开面之二：公开名字的落点（022 冻结；名字定稿前 __all__ 为空）
-    __init__.py
+  api/                 # 公开面之二：公开名字的落点（022 冻结；名字一块一块进 __all__）
+    __init__.py        # 默认面重导出：Block / Ref / Attr / Body / Hub ＋ 七个异常
+    block.py hub.py    # 声明面、库层；park.py / slot.py / index.py 未建
   _cli.py              # [project.scripts] oncasket = "oncasket._cli:main"
   _errors.py           # 异常类的唯一定义处（域模块只抛不定义）
   _hub/                # 005 / 026：容器与 hub

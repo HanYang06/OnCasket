@@ -49,6 +49,27 @@ if TYPE_CHECKING:
     from oncasket._ops.session import HubSession
 
 
+#: 角色字符串：数据块 / 索引块（与公开面的 `Ref.data` / `Ref.index` 同值——公开面住在 `api`，
+#: 它在分层表里比 `_ops` 高，所以这两条常量只能各写一处，别的地方请引用这里）
+ROLE_DATA = "data"
+ROLE_INDEX = "index"
+
+
+def role_of(ref: str) -> Role:
+    """把角色字符串翻成身份分表的归属。
+
+    取值**开放、不枚举**（公开 API §2）：认得的 `index` 进索引分表，其余一律当数据块——
+    「打错字是调用方自己的事」，引擎不替 Python 定义非法取值。
+
+    Args:
+        ref: 角色字符串，空串表示没定过。
+
+    Returns:
+        身份。
+    """
+    return Role.INDEX if ref == ROLE_INDEX else Role.DATA
+
+
 @dataclass(slots=True)
 class Placement:
     """挑好的落点：一个开着的载体 ＋ 链首槽 ＋ 要占几个槽。"""

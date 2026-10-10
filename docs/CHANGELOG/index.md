@@ -13,6 +13,16 @@
 
 ### Added
 
+- **公开面落地：声明面 ＋ 落地面 ＋ 异常面**（[路线图 022](../roadmap/1.x.md)）：新增
+  [`oncasket.api.block`](../../src/oncasket/api/block.py)（`Block` / `Ref` / `Attr` / `Body`，
+  句柄 `AttrEntry` / `AttrLock`）与 [`oncasket.api.hub`](../../src/oncasket/api/hub.py)
+  （`Hub` 的增删改查），连七个异常类一起进 `oncasket.api.__all__`。
+  **声明面的绑定语义定死**：`block.attr.set(handle)` / `block.body.set(handle)` 是**绑定**，
+  绑的是**一个纯句柄**（身份 = 持有者自己 ＋ `block_id`）——块只记住「这个区归谁管」，
+  读写通道仍在句柄上；所以基于 block 建自己的数据结构时，要把 `block` 与句柄一起留成自己的
+  属性，不留就没有落点。设计篇 §6 的样例按这条重写（原样例与 §5 的名字表打架）。
+  拆解版（`Park` / `Packer` / `Slot`）与查询面（`AttrIndex` / `BodyIndex`）未建：
+  前者是下一块，后者跟着路线 033 / 034。
 - **公开面有了第一批名字：异常面冻进 `oncasket.api.__all__`**（[路线图 022](../roadmap/1.x.md)）：
   `oncasket.api` 此前 `__all__` 为空，现在把七个异常类逐个列进去并从
   [`_errors`](../../src/oncasket/_errors.py) 重导出（`OnCasketError` 与

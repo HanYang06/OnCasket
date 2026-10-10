@@ -6,17 +6,20 @@
 不是「再散出几个公开模块」：公开名字在这里定义或从 `_ops` / `_errors` 重导出、逐个列进
 `__all__`；公开签名里不出现私有类型。
 
-名字一块一块冻（路线 022），**冻一块就得有实现兜着**：
+四个面各自的状态：
 
-| 面 | 状态 |
-|---|---|
-| 异常面（§11） | **已冻**——七个类在 `_errors` 里是唯一定义处，且不依赖任何数据模型 |
-| 落地面（§8：`Hub` 的增删改查） | 实现已通（`_ops/`），名字待声明面一起冻 |
-| 声明面（§6：`Block` / `Ref` / `Attr` / `Body`） | 待裁：草图与 §5 有三处打架，见设计篇 |
-| 查询面（§10：`AttrIndex` / `BodyIndex`） | 跟着路线 033 / 034 走——索引块与条目还没落地 |
+| 面 | 装什么 | 状态 |
+|---|---|---|
+| 声明面（§6） | `Block` / `Ref` / `Attr` / `Body`（＋句柄 `AttrEntry` / `AttrLock`） | 已冻 |
+| 落地面（§8） | `Hub`：增删改查四个动作 | 已冻 |
+| 异常面（§11） | 七个异常类 | 已冻 |
+| 查询面（§10） | `AttrIndex` / `BodyIndex` | 跟着路线 033 / 034——索引块与条目还没落地 |
 
-**先冻异常面**的理由只有一条：它是终稿，且不欠任何实现。名字一旦进 `__all__` 就只增不减，
-所以宁可一块一块来，也不先冻一个跑不起来的名字。
+拆解版（`Park` / `Packer` / `Slot`）在 `oncasket.api.park` / `oncasket.api.slot`，
+**默认不开放、引擎不担保**，跟着下一块落地。
+
+名字一旦进 `__all__` 就只增不减，所以每冻一块都得有实现兜着：
+`Hub` 的四个动作底下是 `_ops` 的 session / write（含改）/ read / delete。
 """
 
 from __future__ import annotations
@@ -30,15 +33,24 @@ from oncasket._errors import (
     SchemaMismatchError,
     SqliteTooOldError,
 )
+from oncasket.api.block import Attr, AttrEntry, AttrLock, Block, Body, Ref
+from oncasket.api.hub import Hub
 
 
 #: 公开名字的清单（路线 022 冻结）：只增不减。
 __all__ = [
+    "Attr",
+    "AttrEntry",
+    "AttrLock",
+    "Block",
+    "Body",
     "ConflictError",
     "CorruptError",
+    "Hub",
     "LockTimeoutError",
     "NotFoundError",
     "OnCasketError",
+    "Ref",
     "SchemaMismatchError",
     "SqliteTooOldError",
 ]

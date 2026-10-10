@@ -26,11 +26,14 @@
   | 模块 | 装什么 | 默认面 |
   |---|---|---|
   | `oncasket.api` | 把下面几块里**默认开放**的名字重导出 | 是 |
-  | `oncasket.api.block` | 声明面：`Block` / `Ref` / `Attr` / `Body` | 是 |
+  | `oncasket.api.block` | 声明面：`Block` / `Ref` / `Attr` / `Body`（＋句柄 `AttrEntry` / `AttrLock`） | 是 |
   | `oncasket.api.hub` | 库层：`Hub` | 是 |
   | `oncasket.api.park` | 载体层：`Park` / `Packer` | 否 |
   | `oncasket.api.slot` | 槽层：`Slot` | 否 |
   | `oncasket.api.index` | 查询面：`AttrIndex` / `BodyIndex` | 是 |
+
+  已经落地的是 `block` / `hub` 两块；`park` / `slot` 是拆解版（默认不开放、引擎不担保），
+  `index` 跟着路线 033 / 034。
 
 - **推论**（不只是风格）：公开对象只装内容、不碰盘；读写一律经 `_ops`。
   方向永远是 `api` → `_ops`，与[依赖分层表](packages.md#r031)同向，不成环。
@@ -116,41 +119,57 @@
 **这一层是纯内存**（§3 的「内存面」）：`Block` / `Ref` / `Attr` / `Body` 的所有动作都不碰盘。
 块是**组织性的概念**——它把内容聚在一起；改属性、改块体都跟它关系不大。
 
+#### 约定：`set` 是**绑定**，句柄要自己留着
+
+`block.attr.set(...)` / `block.body.set(...)` **不是「装内容」**，它绑的是**一个纯句柄**：
+块只记住「这个区归哪个句柄管」，读写通道仍在句柄上（`attr.add` / `entry.set` / `body.write`）。
+所以**基于 block 建自己的数据结构时，要把 `block` 与句柄一起留成自己的属性**；
+不留下，后面要加要改就没有落点。
+
+句柄带身份，创建时只传两样：**持有者自己**（`self`）与 **`block_id`**——
+「挂在谁身上」＋「哪个块」。块自己那份句柄在 `Block(...)` 里就建好了，所以不建自己的结构时
+也能直接 `block.attr.add(...)`；`set(...)` 绑进来的会**顶替**它（绑定只换「归谁管」，不搬数据）。
+
 ```python
-block = Block()  # 出来就带 id（uuid4，128 位）
+class Notebook:  # 下游自己的数据结构：基于 block 建
+    def __init__(self) -> None:
+        self.block = Block(self)  # 把持有者自己传进去，block 也自己持有
+        self.attr = self.block.attr.set(Attr(self, self.block.id))  # 绑定 ＋ 留句柄
+        self.body = self.block.body.set(Body(self, self.block.id))  # 同上
 
-block.ref.set(Ref.data)  # 角色：预制属性；等价于 Ref("data")
-block.attr.set(Attr(owner, "notebook"))  # 属性区：身份就是一条 KV（name 是键，owner 是挂在谁身上）
-block.body.set(Body(owner, "notebook"))  # 块体声明
+    def rename(self, title: bytes) -> None:
+        self.attr.add("title", title)  # 落点就是留着的那个句柄
+        self.body.write(b"...")  # 块体也走句柄
 
-title = block.attr.add("title", "未命名")  # 加一条属性，拿它的句柄
+
+block = Block(None)  # 不建自己的结构时，持有者传 None
+block.ref.set(Ref.data)  # 角色：预制取值，等价于 Ref("data")
+
+title = block.attr.add("title", "未命名")  # 加一条属性，拿它的句柄；等价于 block.attr.get("title")
 title.set("Hello,World")  # 改值（锁之前）
-block.attr.get("title").item()  # 按名取句柄
+block.attr.get("title").item()  # 按名取句柄再读
 
-block.body.type.set(list)  # 类型声明：读端靠它解回来
-block.attr.index.open()  # 开属性索引
-block.attr.index.set("title", only_one=False)
-block.body.index.open()  # 开块体索引
-
+block.body.write(b"...")  # 写块体（锁之前）
 block.attr.lock.all()  # 冻结整个属性区
 block.attr.lock.item("title")  # 冻结一条
+block.body.lock()  # 冻结块体
 ```
 
+- **句柄是一等公民**：`Attr(持有者, block_id)` / `Body(持有者, block_id)`；
+  `AttrEntry`（一条属性）由 `attr.add` / `attr.get` 交回来，`.set` / `.item` 读写那一条。
 - **组合，不是继承**：下游持有 `Block`，不继承 `Block`——块是数据，不是类型。
 - `attr` 为什么不是裸 `dict`：**「可自定义」本身就是一套行为**——按名升序落盘、单条上限、
   谁能改到哪一步，都要有地方挂。
-- **锁是可变性开关**：`lock.all()` / `lock.item(名)` 之后不可改，语义同 dataclass 的 frozen。
-  声明段是纯内存对象，不存在要防的并发写者。
+- **锁是可变性开关**：`lock.all()` / `lock.item(名)` / `body.lock()` 之后不可改，语义同
+  dataclass 的 frozen。声明段是纯内存对象，不存在要防的并发写者。
 - **句柄就是读写通道**：`body` 句柄写块体，属性句柄读写属性；没有限制说属性不能当块体用
   （索引这类特化场景天然是 KV，拿它当载体正好）。
-- **`ref` 就是一条属性**：`block.ref.set(Ref.data)` 与 `block.attr.set("ref", Ref.data)`
-  是同一件事——角色不是单独的结构，它是自述区里一条**约定好名字**的属性。所以扫块时读属性
+- **`ref` 就是一条属性**：`block.ref` 是自述区里一条**约定好名字**（`ref`）的属性，
+  写块时由 `block.attributes()` 按这个名字并进去——角色不是单独的结构。所以扫块时读属性
   就分得出数据块与索引块，**重建不需要另立登记**，动作还是那个动作。
-
-> **本节与 §5 有三处对不上，别照它落代码**（见文末待定 2）：① `Block().body` 在 §5 是
-> 「`block_body_size` 位的那段字节」，本节却写成 `block.body.set(Body(...))`；② `Attr` 在 §5
-> 是 `Block().attr` 那个**属性区**，本节却用 `Attr(owner, "notebook")` 当**条目**；
-> ③ 本节用到的句柄（`title`、`.lock`、`.type`）在 §1 的名字表里没有名字。
+- **`Body.type`（类型声明）与 `attr.index` / `body.index`（索引开关）不在本节**：
+  前者跟着路线 034（类型装在索引条目里），后者跟着路线 033（索引块与条目）——
+  数据模型没落地之前不冻名字。
 
 ### 7. 类型：装在索引条目里，不改格式
 
@@ -420,4 +439,3 @@ demo 是随手写的（作者原话：变量名图省事用了单字母，本页
 | # | 待定项 | 卡在哪 | 谁拍 |
 |---|---|---|---|
 | 1 | 锁超时的缺省值 | 可配（传参 ＋ `hub.conf.json` 长久配置）已定；缺省给毫秒级还是秒级，**等压测出结果**再拍 | 待定 |
-| 2 | 声明面三处草图对不上 | §6 的样例与 §5 的名字表打架：① `Block().body` 是「那段字节」还是 `Body` 对象；② `Attr` 是**条目**（§6）还是**属性区**（§5）；③ 句柄（`title` / `.lock` / `.type`）要不要各占一个公开名字——§1 的表只列了四个。三处不定，`Block` / `Ref` / `Attr` / `Body` 的签名就落不了，`Hub.write(block)` 也跟着冻不了 | 待裁 |
