@@ -67,6 +67,7 @@ class DemoData:
         Returns:
             属性区。
         """
+        attr = Attr(self.b.id)
         attr = self.b.attr.set(Attr(self, self.name))
         self.title = attr.add("title", "DemoData")
         self.title.set("Hello,Word")

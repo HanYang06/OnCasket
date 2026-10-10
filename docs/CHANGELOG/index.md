@@ -13,6 +13,18 @@
 
 ### Added
 
+- **公开面有了第一批名字：异常面冻进 `oncasket.api.__all__`**（[路线图 022](../roadmap/1.x.md)）：
+  `oncasket.api` 此前 `__all__` 为空，现在把七个异常类逐个列进去并从
+  [`_errors`](../../src/oncasket/_errors.py) 重导出（`OnCasketError` 与
+  `SchemaMismatchError` / `SqliteTooOldError` / `NotFoundError` / `ConflictError` /
+  `LockTimeoutError` / `CorruptError`）——下游终于有一条能用的 import 路径。
+  名字一旦进 `__all__` 就只增不减；声明面与落地面等设计篇 §6 的三处待裁拍完再冻，
+  查询面跟着路线 033 / 034。
+- **改：基准点 ＋ 新值**（[路线图 035](../roadmap/1.x.md)）：[`_ops/write.py`](../../src/oncasket/_ops/write.py)
+  的 `update_block` 按公开 API §8 走——先按基准点把现役那份读回来（带强校验），应用新值后
+  **写前再验一次**库里的 `global_hash`：中途被别处改过就抛 `ConflictError` 并把刚占的新段放回去，
+  不静默覆盖；换成功才释放旧段。库侧对应 `IndexStore.replace_content`（`WHERE … AND global_hash = ?`
+  的比较并交换）。属性只覆盖点名的键，不给块体就沿用现役那份。
 - **引擎最小竖切：`Hub` 打开 → 写 → 读 → 删走通**（[路线图 002](../roadmap/1.x.md) / 003 / 005 / 006 /
   007 / 009 / 014 / 026）：索引库的表读写落地（总表 ＋ `data_block` / `index_block` 两张身份分表，
   地址两列同生同灭），库侧提交动作落地（② 写 `pending` 行、⑥ `state → ok`、⑦ 地址回流），

@@ -32,18 +32,20 @@ from typing import TYPE_CHECKING
 
 from oncasket._alloc.policy import Pick, choose_free, parse_pick
 from oncasket._alloc.segments import free_segments
-from oncasket._errors import CorruptError, NotFoundError
+from oncasket._errors import ConflictError, CorruptError, NotFoundError
 from oncasket._format import scan, spec
 from oncasket._format.block import assemble_block, global_hash, parse_block, plan_block
 from oncasket._format.park import ParkFile
 from oncasket._hub import layout
 from oncasket._index import commit
-from oncasket._index.store import Role
+from oncasket._index.store import BlockRow, Role
+from oncasket._ops import read as read_module
 
 
 if TYPE_CHECKING:
     from collections.abc import Mapping, Sequence
 
+    from oncasket._format.block import Block
     from oncasket._ops.session import HubSession
 
 
@@ -125,6 +127,113 @@ def write_block(
         finally:
             placement.close()
     return plan.block_id
+
+
+def update_block(
+    session: HubSession,
+    block_id: bytes,
+    *,
+    attrs: Mapping[str, bytes] | None = None,
+    body: bytes | None = None,
+) -> bytes:
+    """改（035）：**基准点 ＋ 新值**。读回现役 → 应用新值 → 写前验一次。
+
+    机制与判据（公开 API §8）：
+
+    - 先按基准点把**现役那一份**读回来——读的过程必然带强校验（逐槽 `check` ＋ 整块哈希）；
+    - 应用新值后**写前再验一次**：库里的 `global_hash` 还是不是读回来那一份？不是就说明
+      中途被别处改过，**不静默覆盖**，抛 `ConflictError`（乐观并发）；
+    - 改的是属性与块体，不是「块」：`attrs` 只覆盖点名的键，`body` 不给就沿用现役那份；
+    - 新内容先落，库侧换成新地址，**最后**才释放旧段。崩在中间最坏是多占一段
+      （旧段还记在 `used` 里），不丢数据。
+
+    Args:
+        session: 开着的 hub 会话。
+        block_id: 基准点：逻辑块 ID（或索引查出来的那个 id）。
+        attrs: 要改的属性；只覆盖点名的键，其余沿用。
+        body: 新的块体；不给就沿用现役那份。
+
+    Returns:
+        还是那个 `block_id`（改不改都不换身份）。
+
+    Raises:
+        NotFoundError: 基准点找不到。
+        OnCasketError: `state = pending`——这次提交没走完，改不动。
+        CorruptError: 现役那一份读回来验不过。
+        ConflictError: 基准点还在，但已经不是现役（写前验不过）。
+        LockTimeoutError: 等写锁超时。
+    """
+    with session.write_lock():
+        row = read_module.row_of(session, block_id)
+        current = read_module.read_block(session, block_id)
+        merged = dict(current.attrs)
+        if attrs:
+            merged.update(attrs)
+        slot_size = _slot_size_of(session, row)
+        plan = plan_block(
+            block_id=block_id,
+            attrs=merged,
+            body=current.body if body is None else body,
+            slot_size=slot_size,
+        )
+        placement = _allocate(session, needed=plan.slot_num, slot_size=slot_size, park=None)
+        try:
+            slots = assemble_block(plan, first_slot_id=placement.first_slot_id)
+            digest = global_hash(slots)
+            _occupy(placement, slots)
+            _verify(placement, slots, digest)
+            swapped = session.store.replace_content(
+                block_id,
+                expected_hash=row.global_hash,
+                global_hash=digest,
+                budget_slot=plan.slot_num,
+                block_size=plan.block_size,
+                park=placement.name,
+                first_slot_id=placement.first_slot_id,
+            )
+            if not swapped:
+                free_slots(placement.park, placement.first_slot_id, len(slots))
+                raise ConflictError(f"基准点已不是现役：{block_id.hex()}")
+        finally:
+            placement.close()
+        _free_old(session, row, current)
+    return block_id
+
+
+def _slot_size_of(session: HubSession, row: BlockRow) -> int:
+    """现役那一份用的槽长——从它所在的载体头上取，同一份内容要按同样的槽长铺。
+
+    Args:
+        session: 开着的 hub 会话。
+        row: 现役那一行的索引行。
+
+    Returns:
+        槽长（位）；载体已经不在就退回缺省槽长。
+    """
+    if row.park is None:
+        return spec.SLOT_SIZE_DEFAULT
+    path = session.park_path(row.park)
+    if not path.is_file():
+        return spec.SLOT_SIZE_DEFAULT
+    with ParkFile.load(path) as park:
+        return park.header.slot_size
+
+
+def _free_old(session: HubSession, row: BlockRow, current: Block) -> None:
+    """换成功之后释放旧段（格式 §8 的顺序：先头槽、再其余）。
+
+    Args:
+        session: 开着的 hub 会话。
+        row: 换之前那一行的索引行（地址还是旧地址）。
+        current: 换之前那一份内容（用来数旧链有几个槽）。
+    """
+    if row.park is None or row.first_slot_id is None:
+        return
+    path = session.park_path(row.park)
+    if not path.is_file():
+        return
+    with ParkFile.load(path) as park:
+        free_slots(park, row.first_slot_id, current.header_slot_num + current.data_slot_num)
 
 
 def free_slots(park: ParkFile, first_slot_id: int, slot_num: int) -> None:

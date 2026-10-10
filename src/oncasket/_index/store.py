@@ -349,6 +349,50 @@ class IndexStore:
         if cursor.rowcount == 0:
             raise NotFoundError(f"索引行不在了：{block_id.hex()}")
 
+    def replace_content(
+        self,
+        block_id: bytes,
+        *,
+        expected_hash: bytes,
+        global_hash: bytes,
+        budget_slot: int,
+        block_size: int,
+        park: str,
+        first_slot_id: int,
+    ) -> bool:
+        """改（035）的库侧一半：**基准点对得上才换**（乐观并发）。
+
+        判据只有一条——行上的 `global_hash` 还是调用方读回来的那一份。中途被别处改过就
+        换不动，返回 `False`，由调用方翻译成 `ConflictError`。
+
+        Args:
+            block_id: 逻辑块 ID。
+            expected_hash: 读回来时那一份 `global_hash`。
+            global_hash: 新内容的全局哈希。
+            budget_slot: 新内容要几个槽。
+            block_size: 新内容多少字节。
+            park: 新的 park 名。
+            first_slot_id: 新的链首槽 id。
+
+        Returns:
+            换成了为真；基准点已被别处换掉为假。
+        """
+        with self._connection:
+            cursor = self._connection.execute(
+                "UPDATE block SET global_hash = ?, budget_slot = ?, block_size = ?, "
+                "park = ?, first_slot_id = ? WHERE block_id = ? AND global_hash = ?",
+                (
+                    global_hash,
+                    budget_slot,
+                    block_size,
+                    park,
+                    first_slot_id,
+                    block_id,
+                    expected_hash,
+                ),
+            )
+        return cursor.rowcount == 1
+
     def delete(self, block_id: bytes) -> bool:
         """删一行；两张身份分表靠 `ON DELETE CASCADE` 跟着走（索引库 §006）。
 

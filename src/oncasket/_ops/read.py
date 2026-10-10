@@ -62,7 +62,7 @@ def read_block(session: HubSession, block_id: bytes) -> Block:
         OnCasketError: `state = pending`——这次提交没走完。
         CorruptError: `state = error`、地址扫不出来、槽不认，或全局哈希对不上。
     """
-    row = _row(session, block_id)
+    row = row_of(session, block_id)
     address = locate(session, block_id)
     chain = read_chain(session, address)
     digest = global_hash(chain.slots)
@@ -91,7 +91,7 @@ def locate(session: HubSession, block_id: bytes) -> Address:
         OnCasketError: `state = pending`。
         CorruptError: `state = error`，或地址空而盘上也找不到。
     """
-    row = _row(session, block_id)
+    row = row_of(session, block_id)
     if row.park is not None and row.first_slot_id is not None:
         return Address(park=row.park, first_slot_id=row.first_slot_id)
     found = _scan_for(session, block_id)
@@ -139,7 +139,7 @@ def read_chain(session: HubSession, address: Address) -> Chain:
         raise CorruptError(f"载体读不满：{address.park} 第 {address.first_slot_id} 槽") from exc
 
 
-def _row(session: HubSession, block_id: bytes) -> BlockRow:
+def row_of(session: HubSession, block_id: bytes) -> BlockRow:
     """取一行，并把「可读性」判完。
 
     Args:
