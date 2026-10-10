@@ -13,6 +13,21 @@
 
 ### Added
 
+- **引擎最小竖切：`Hub` 打开 → 写 → 读 → 删走通**（[路线图 002](../roadmap/1.x.md) / 003 / 005 / 006 /
+  007 / 009 / 014 / 026）：索引库的表读写落地（总表 ＋ `data_block` / `index_block` 两张身份分表，
+  地址两列同生同灭），库侧提交动作落地（② 写 `pending` 行、⑥ `state → ok`、⑦ 地址回流），
+  [`_ops/`](../../src/oncasket/_ops/) 的 session / write / read / delete 从占位变成实现——规划内容 →
+  挑段（段表 ＋ `best_fit` / `first_fit` / `worst_fit`，挑不中就扩水线、再不行新建 park）→ 落槽 →
+  复检 → 提交 → 地址回流；读路径「库 → 地址 → 载体 → 块 → 内容」逐槽 `check` ＋ 整块
+  `global_hash` 双重验证，地址空时盲扫补地址；删除先物理（头槽清零 → 其余槽清零）后动库。
+  hub 清单走 OnConf（`hub.conf.json`，键 `lock_timeout` / `alloc_pick` / `alloc_dead`），
+  容器级文件锁 `hub.lock.json` 提供「等 ＋ 超时」，`_errors` 补齐 `NotFoundError` /
+  `ConflictError` / `LockTimeoutError` / `CorruptError` 四个类。
+- **容器目录多了 OnConf 自己的两样落点**（[路线图 026](../roadmap/1.x.md)）：清单走 OnConf 就带上它的
+  词表 `schema/hub.conf.json` 与审计 `audit.log`；事实依据 [`config/hub.txt`](../../config/hub.txt)
+  已按此扩充并重盖版本标记。**索引库 schema 未动**，指纹不变。
+- **`global_hash` 的算法写定为 XXH3-128**（[路线图 009](../roadmap/1.x.md)）：口径原先只说「整块在载体上的
+  全部字节」、没点算法；现在与槽内 `check` 同族（`xxhash` 是既有运行时依赖），落 16 B 原始输出、不翻端序。
 - **公开面加一块：新增公开子包 `oncasket.api`**（[路线图 031](../roadmap/1.x.md)）：
   门面整体拆出去的那一项——[包与目录设计](../design/packages.md) §2 早写好的逃逸口，现在正式用掉。
   顶层白名单从「只有 `py.typed`」改成 `py.typed` ＋ `api/`；两条守卫同步跟着改——公开面自查

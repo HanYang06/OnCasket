@@ -1,4 +1,4 @@
-encoding: utf-8 version: 876b9b844a67f3ffe300ccc9a1ba8683a9d9c31a09c467d969490f2e34d6ea09
+encoding: utf-8 version: 962b58069edce383597596e7f2df67e4375bc9ec5fa8f4898df635e4d3b8190c
 endian: little
 # 目录 DSL：段头 root_dir:<名> / sub_dir:<名>；段内缩进表归属；行末带 / 为目录；copy:<源段>::<路径> 为整段复制
 # <hub>=hub 名（可重复）；park 名 = hash(唯一名) 十六进制小写前 16 位，其第 1-2 / 3-4 位做两级分片
@@ -10,6 +10,10 @@ root_dir:.oncasket
             gc/
         hub.conf.json
         hub.lock.json
+        # 以下三样是 OnConf 自己的落点（引擎不安排、也不绕过它）；见 hub 布局 §026
+        schema/
+            hub.conf.json
+        audit.log
 
 sub_dir:pack
     <h0:2>/

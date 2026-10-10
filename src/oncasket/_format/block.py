@@ -24,6 +24,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
+import xxhash
+
 from oncasket._format import slot, spec
 
 
@@ -259,6 +261,22 @@ def assemble_block(plan: BlockPlan, *, first_slot_id: int) -> list[bytes]:
         for index, chunk in enumerate(plan.chunks)
     ]
     return [head, *overflow_slots, *body_slots]
+
+
+def global_hash(slots: Sequence[bytes]) -> bytes:
+    """整块全局哈希：链上槽字节**按序拼起来**算 XXH3-128（索引库 §009 的 `global_hash`）。
+
+    输入串就是「整块在载体上的全部字节」——含各槽 `check`、含头槽自述区，不含库里任何列，
+    所以从载体盲扫出来的同一串字节能确定性复算（索引库 §013）。算法与槽内 `check` 同族
+    （`xxhash` 是既有运行时依赖），返回算法原始输出的 16 B，不翻端序。
+
+    Args:
+        slots: 从链首开始的整条链的槽字节。
+
+    Returns:
+        16 B 的 XXH3-128 原始输出。
+    """
+    return xxhash.xxh3_128(b"".join(slots)).digest()
 
 
 def parse_block(
